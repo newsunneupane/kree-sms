@@ -58,7 +58,7 @@ export default function SingleSms({ userId, setStatus, syncBalance }) {
       <div className="mb-6 pl-1">
         <h3 className="text-lg font-bold text-slate-200 tracking-tight flex items-center space-x-2.5">
           <span className="filter drop-shadow">💬</span>
-          <span>Single SMS Dispatch</span>
+          <span>Single SMS </span>
         </h3>
         <p className="text-xs text-slate-400 mt-1">Fire a standalone transmission payload instantly to any active mobile phone node network.</p>
       </div>

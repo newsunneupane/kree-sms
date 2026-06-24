@@ -57,13 +57,13 @@ export default function UserDashboard({ user, logout }) {
   };
 
   const navItems = [
-    { id: "single", label: "Single SMS Engine", icon: "💬" },
-    { id: "bulk", label: "Bulk Mass Blast", icon: "📁" },
-    { id: "dynamic", label: "Dynamic Campaign", icon: "⚡" },
-    { id: "schedule", label: "Schedule Outbound Queue", icon: "⏰" },
-    { id: "phonebook", label: "Phonebook Segments", icon: "👥" }, 
+    { id: "single", label: "Single SMS ", icon: "💬" },
+    { id: "bulk", label: "Bulk SMS", icon: "📁" },
+    { id: "dynamic", label: "Dynamic SMS", icon: "⚡" },
+    { id: "schedule", label: "Scheduled SMS", icon: "⏰" },
+    { id: "phonebook", label: "Phonebook and Groups", icon: "👥" }, 
     { id: "credit", label: "Request Balance Load", icon: "💳" },
-    { id: "history", label: "Outbound Reports Logs", icon: "📊" },
+    { id: "history", label: "Reports", icon: "📊" },
   ];
 
   const SidebarContent = () => (
@@ -160,7 +160,7 @@ export default function UserDashboard({ user, logout }) {
               </svg>
             </button>
             <div className="hidden sm:block">
-              <h1 className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Authorized Profiler Identity</h1>
+              <h1 className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Authorized Identity</h1>
               <p className="text-sm font-bold text-slate-200 uppercase">{user.name}</p>
             </div>
           </div>
