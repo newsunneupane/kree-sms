@@ -28,7 +28,7 @@ export default function CreditTransfer({ userId, setStatus }) {
   };
 
   return (
-    <div className="max-w-xl bg-white p-5 sm:p-8 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300">
+    <div className="max-w-xl bg-blue-100 p-5 sm:p-8 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300">
       
       {/* HEADER SECTION */}
       <div className="mb-6">
