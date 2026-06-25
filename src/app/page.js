@@ -16,6 +16,8 @@ export default function Home() {
   const [msg, setMsg] = useState({ text: "", type: "" }); 
   const [checkingSession, setCheckingSession] = useState(true);
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
   useEffect(() => {
     const savedUser = localStorage.getItem("sms_session");
     if (savedUser) {
@@ -31,7 +33,7 @@ export default function Home() {
     setIsLoading(true);
     
     try {
-      const res = await fetch("http://localhost/sms-backend/auth.php", {
+      const res = await fetch("${baseUrl}/sms-backend/auth.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "login", email: form.email, password: form.password }),
@@ -58,7 +60,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost/sms-backend/register.php", {
+      const res = await fetch("${baseUrl}/sms-backend/register.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "submit_registration", ...form }),
@@ -85,7 +87,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost/sms-backend/register.php", {
+      const res = await fetch("${baseUrl}/sms-backend/register.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "verify_otp", email: form.email, otp: otpCode }),

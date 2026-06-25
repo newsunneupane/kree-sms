@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function BulkSms({ userId, setStatus, syncBalance, downloadSample }) {
   const [bulkMessage, setBulkMessage] = useState("");
@@ -18,7 +19,7 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const res = await fetch(`http://localhost/sms-backend/phonebook.php?action=get_phonebook&user_id=${userId}`);
+        const res = await fetch(`${baseUrl}/sms-backend/phonebook.php?action=get_phonebook&user_id=${userId}`);
         const data = await res.json();
         if (data.success) setGroups(data.groups);
       } catch (err) { 
@@ -72,7 +73,7 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
         compiledCsvText = `SYSTEM_GROUP_ID:${selectedGroupId}`;
       }
 
-      const res = await fetch("http://localhost/sms-backend/user.php", {
+      const res = await fetch(`${baseUrl}/sms-backend/user.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
