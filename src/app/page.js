@@ -60,7 +60,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("${baseUrl}/sms-backend/register.php", {
+      const res = await fetch("${baseUrl}/register.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "submit_registration", ...form }),
