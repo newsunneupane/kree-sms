@@ -16,7 +16,7 @@ export default function Home() {
   const [msg, setMsg] = useState({ text: "", type: "" }); 
   const [checkingSession, setCheckingSession] = useState(true);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80/";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     const savedUser = localStorage.getItem("sms_session");
@@ -131,8 +131,8 @@ export default function Home() {
 
       <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md transition-all duration-300 hover:border-slate-700/80">
         <header className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 text-white font-black text-xl shadow-lg shadow-indigo-500/20 mb-4">
-            S
+          <div className="inline-flex items-center justify-center w-20 h-12 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 text-white font-black text-xl shadow-lg shadow-indigo-500/20 mb-4">
+            कृ.SMS
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             {!isRegister ? "Welcome Back" : regStep === 1 ? "Create Account" : regStep === 2 ? "Verify Email" : "Staged Pending"}
@@ -172,7 +172,7 @@ export default function Home() {
               />
             </div>
             <button type="submit" disabled={isLoading} className="w-full mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-3 px-4 rounded-xl font-semibold text-xs uppercase tracking-wide transition-all disabled:opacity-40">
-              {isLoading ? "Validating Session..." : "Secure Log In"}
+              {isLoading ? "Validating Session..." : "Log In"}
             </button>
           </form>
         )}
@@ -276,7 +276,7 @@ export default function Home() {
                 setMsg({ text: "", type: "" });
               }}
             >
-              {isRegister ? "Already registered? Login here" : "Need a platform account? Register here"}
+              {isRegister ? "Already registered? Login here" : "Need a new account? Register here"}
             </p>
           </div>
         )}

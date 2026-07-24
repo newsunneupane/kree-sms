@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function BulkSms({ userId, setStatus, syncBalance, downloadSample }) {
   const [bulkMessage, setBulkMessage] = useState("");
@@ -105,8 +105,8 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
       
       {/* SECTION TITLE HEADER */}
       <div className="mb-6">
-        <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Bulk Mass Messaging</h3>
-        <p className="text-xs text-gray-400 mt-1">Broadcast or schedule a single message outward to thousands of recipients seamlessly.</p>
+        <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Bulk SMS</h3>
+        <p className="text-xs text-gray-900 mt-1">Broadcast or schedule a single message outward to thousands of recipients seamlessly.</p>
       </div>
       
       {/* SEGMENT TOGGLE NAVIGATION */}
@@ -220,16 +220,16 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
               creditCostPerRecipient > 1 ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-gray-100 text-gray-500'
             }`}>
               <span>{charCount} Chars</span>
-              <span className="text-gray-300">•</span>
+              <span className="text-gray-900">•</span>
               <span>Cost/User: <strong className="font-black text-xs">{creditCostPerRecipient}</strong> {creditCostPerRecipient === 1 ? 'Credit' : 'Credits'}</span>
             </span>
           </div>
           <textarea 
-            placeholder="Type your unified blast message template copy right here..." 
+            placeholder="Type your message right here..." 
             required 
             rows="4" 
             value={bulkMessage} 
-            className="w-full p-3.5 border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-xs leading-relaxed text-gray-700 transition-all placeholder-gray-400 shadow-inner bg-gray-50/30" 
+            className="w-full p-3.5 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-xs leading-relaxed text-gray-700 transition-all placeholder-gray-400 shadow-inner bg-gray-50/30" 
             onChange={(e) => setBulkMessage(e.target.value)} 
           />
         </div>

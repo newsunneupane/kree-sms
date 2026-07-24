@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function ScheduleSms({ userId, setStatus }) {
   const [scheduleData, setScheduleData] = useState({ recipient: "", message: "", scheduled_at: "" });

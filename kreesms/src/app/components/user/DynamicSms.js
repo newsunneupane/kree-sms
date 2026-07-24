@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function DynamicSms({ userId, setStatus, syncBalance, downloadSample }) {
   const [sourceType, setSourceType] = useState("file"); 
@@ -111,8 +111,8 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
       
       {/* SECTION HEADER */}
       <div className="mb-6">
-        <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Dynamic Campaign Engine</h3>
-        <p className="text-xs text-gray-400 mt-1">Deliver custom, contact-specific message strings using file mapping or saved internal parameters.</p>
+        <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Dynamic SMS</h3>
+        <p className="text-xs text-gray-700 mt-1">Deliver custom, contact-specific message strings using file mapping or saved internal parameters.</p>
       </div>
       
       {/* VIEW FILTER SEGMENT SELECTOR BUTTONS */}

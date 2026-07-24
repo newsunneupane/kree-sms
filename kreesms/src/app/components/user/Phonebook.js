@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function Phonebook({ userId, setStatus }) {
   // Directory & Structural State Vectors
@@ -146,7 +146,7 @@ export default function Phonebook({ userId, setStatus }) {
     }
 
     try {
-      const res = await fetch("http://localhost/sms-backend/phonebook.php", {
+      const res = await fetch(`${baseUrl}/sms-backend/phonebook.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -172,7 +172,7 @@ export default function Phonebook({ userId, setStatus }) {
   const handleAddSingleContact = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost/sms-backend/phonebook.php", {
+      const res = await fetch(`${baseUrl}/sms-backend/phonebook.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "add_contact", user_id: userId, ...newContact })

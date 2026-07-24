@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function AdminDashboard({ admin, logout }) {
   const [requests, setRequests] = useState([]);
-  const [pendingUsers, setPendingUsers] = useState([]); // 🚀 NEW VECTOR FOR ONBOARDING REQUESTS
+  const [users, setUsers] = useState([]);
   
   const [gatewayBalance, setGatewayBalance] = useState(null);
   const [unallocatedBalance, setUnallocatedBalance] = useState(null);
@@ -42,42 +42,23 @@ export default function AdminDashboard({ admin, logout }) {
     }
   };
 
-  // 🚀 NEW FUNCTION: FETCH PENDING REGISTRATION ROWS FROM STAGING
-  const loadPendingRegistrations = async () => {
+  const loadUsers = async () => {
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/admin.php?action=get_pending_registrations&admin_id=${admin.id}`);
+      const res = await fetch(`${baseUrl}/sms-backend/admin.php?action=get_users&admin_id=${admin.id}`);
       const data = await res.json();
-      if (data.success) setPendingUsers(data.pending_users || []);
+      if (data.success) setUsers(data.users || []);
     } catch (err) {
-      console.error("Failed to read pending registrations staging list:", err);
+      console.error("Failed to load users:", err);
     }
   };
 
   useEffect(() => { 
     if (admin?.id) {
       loadRequests(); 
-      loadPendingRegistrations(); // Instantly pull unverified queue items down on screen start
+      loadUsers();
       fetchBalances();
     }
   }, [admin]);
-
-  // 🚀 NEW FUNCTION: APPROVE USER REGISTRATION TRANSITION ROUTINE
-  const approveNewUser = async (id) => {
-    setMsg("Authorizing registration profile credentials row...");
-    try {
-      const res = await fetch(`${baseUrl}/sms-backend/admin.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve_new_user", admin_id: admin.id, registration_id: id }),
-      });
-      const data = await res.json();
-      setMsg(data.message);
-      
-      loadPendingRegistrations(); // Refresh staging grid lists
-    } catch (err) {
-      setMsg("Failed to broadcast whitelist authorization instruction packets.");
-    }
-  };
 
   const handleSystemTopUp = async (e) => {
     e.preventDefault();
@@ -237,48 +218,46 @@ export default function AdminDashboard({ admin, logout }) {
         </div>
       )}
 
-      {/* 🚀 NEW SECTION LAYOUT: PENDING REGISTRATION AUDITING SYSTEM PANEL */}
+      {/* REGISTERED USERS PANEL */}
       <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
         <div className="mb-5">
           <h3 className="text-base font-extrabold text-gray-900 tracking-tight flex items-center space-x-2">
-            <span>🛡️</span>
-            <span>Pending Account Signups Awaiting Verification</span>
+            <span>👥</span>
+            <span>Registered Users</span>
           </h3>
-          <p className="text-xs text-gray-400 mt-0.5">Review users who have successfully verified their email OTP codes and authorize their login profiles.</p>
+          <p className="text-xs text-gray-400 mt-0.5">All registered accounts on the platform.</p>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-gray-200/60 shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/70 border-b border-gray-200/60 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <th className="p-3.5">Applicant Details</th>
-                <th className="p-3.5">Email Identity</th>
-                <th className="p-3.5">Submission Timestamp</th>
-                <th className="p-3.5 text-right">Whitelisting Operations</th>
+                <th className="p-3.5">Name</th>
+                <th className="p-3.5">Email</th>
+                <th className="p-3.5">Role</th>
+                <th className="p-3.5">Balance</th>
+                <th className="p-3.5">Joined</th>
               </tr>
             </thead>
             <tbody className="text-xs divide-y divide-gray-100 text-gray-700">
-              {pendingUsers.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="p-8 text-center text-gray-400 font-medium font-sans italic">
-                    No onboarding applications currently waiting inside the verification staging queue.
+                  <td colSpan="5" className="p-8 text-center text-gray-400 font-medium font-sans italic">
+                    No users registered yet.
                   </td>
                 </tr>
               ) : (
-                pendingUsers.map((u) => (
+                users.map((u) => (
                   <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="p-3.5 font-bold text-gray-900">{u.name}</td>
                     <td className="p-3.5 font-mono text-blue-600 font-semibold">{u.email}</td>
-                    <td className="p-3.5 text-gray-400 font-medium">{new Date(u.created_at).toLocaleString()}</td>
-                    <td className="p-3.5 text-right">
-                      <button 
-                        onClick={() => approveNewUser(u.id)} 
-                        type="button"
-                        className="bg-blue-600 hover:bg-blue-700 active:scale-[0.97] text-white text-[11px] font-black tracking-wide py-2 px-3 rounded-lg shadow-sm transition-all whitespace-nowrap"
-                      >
-                        ⚡ Authorize & Onboard User
-                      </button>
+                    <td className="p-3.5">
+                      <span className={`inline-block text-[10px] px-2.5 py-0.5 font-black rounded-md uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {u.role}
+                      </span>
                     </td>
+                    <td className="p-3.5 font-black font-mono text-emerald-600">{u.sms_balance}</td>
+                    <td className="p-3.5 text-gray-400">{new Date(u.created_at).toLocaleString()}</td>
                   </tr>
                 ))
               )}

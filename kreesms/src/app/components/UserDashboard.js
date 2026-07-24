@@ -18,7 +18,7 @@ export default function UserDashboard({ user, logout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   const syncBalance = async () => {
     try {
