@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useTheme } from "./ThemeContext";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -14,6 +15,7 @@ export default function AdminDashboard({ admin, logout }) {
   
   const [topUpAmount, setTopUpAmount] = useState("");
   const [isSubmittingTopUp, setIsSubmittingTopUp] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
 
   const fetchBalances = async () => {
     if (!admin?.id) return;
@@ -111,224 +113,227 @@ export default function AdminDashboard({ admin, logout }) {
   const getStatusChipStyle = (status) => {
     switch (status?.toLowerCase()) {
       case "approved":
-        return "bg-emerald-50 text-emerald-700 border border-emerald-100/60";
+        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
       case "pending":
-        return "bg-amber-50 text-amber-700 border border-amber-100/80 animate-pulse";
+        return "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse";
       default:
-        return "bg-rose-50 text-rose-700 border border-rose-100/60";
+        return "bg-rose-50 text-rose-700 border border-rose-200";
     }
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 text-gray-800 transition-all duration-300">
-      
-      {/* ADMINISTRATIVE DASHBOARD TOP COMMAND NAV */}
-      <header className="bg-slate-900 text-white p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg shadow-slate-900/10 z-10">
-        <div>
-          <h1 className="text-lg font-black tracking-wider text-blue-400 font-mono uppercase">KREESMS ADMIN</h1>
-          <p className="text-[11px] tracking-wide text-slate-400 mt-0.5">Master Gateway Node Operator Workspace ({admin?.name})</p>
-        </div>
-        <button 
-          onClick={logout} 
-          type="button"
-          className="bg-red-500 hover:bg-red-600 active:scale-[0.98] text-white text-xs font-black tracking-wide py-2.5 px-4 rounded-xl transition-all shadow-md shadow-red-500/10 self-stretch sm:self-auto text-center"
-        >
-          🚪 Close System Console
-        </button>
-      </header>
-
-      {/* THREE-COLUMN DISPLAY: MONITORS & REFILL INTERFACE */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="min-h-screen bg-gray-50 transition-all duration-300">
+      <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 text-gray-800 transition-all duration-300">
         
-        {/* CARD 1: UNALLOCATED POOL */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgb(0,0,0,0.015)] flex flex-col justify-between">
+        <header className="bg-gray-900 text-white p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg z-10">
           <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 font-mono">Available Stock Pool</span>
-              <button 
-                onClick={fetchBalances}
-                disabled={isSyncing}
-                type="button"
-                className={`text-xs p-1 rounded-md hover:bg-slate-100 ${isSyncing ? "animate-spin text-blue-500" : "text-slate-400"}`}
-              >
-                🔄
-              </button>
-            </div>
-            <h4 className="text-sm font-extrabold text-slate-700 mt-2">Unallocated System Balance</h4>
-            <p className="text-[11px] text-gray-400 mt-0.5">Increases via form below; decreases when granted to users.</p>
+            <h1 className="text-lg font-black tracking-wider text-blue-400 font-mono uppercase">KREESMS ADMIN</h1>
+            <p className="text-[11px] tracking-wide text-gray-400 mt-0.5">Master Gateway Node Operator Workspace ({admin?.name})</p>
           </div>
-          <div className="mt-4">
-            <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-blue-600">
-              {unallocatedBalance !== null ? unallocatedBalance.toLocaleString() : "•••"}
-            </span>
-            <span className="text-[11px] font-bold text-slate-400 ml-1.5 uppercase tracking-wide">Units Free</span>
-          </div>
-        </div>
-
-        {/* CARD 2: REAL-TIME GATEWAY POOL */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-[0_4px_20px_rgb(0,0,0,0.015)] flex flex-col justify-between">
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 font-mono">Live External Pool</span>
-            <h4 className="text-sm font-extrabold text-slate-700 mt-2">Aakash API Gateway Balance</h4>
-            <p className="text-[11px] text-gray-400 mt-0.5">Deducts only when live users physically fire out outbound SMS texts.</p>
-          </div>
-          <div className="mt-4">
-            <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-emerald-600">
-              {gatewayBalance !== null ? gatewayBalance.toLocaleString() : "•••"}
-            </span>
-            <span className="text-[11px] font-bold text-slate-400 ml-1.5 uppercase tracking-wide">Units on Server</span>
-          </div>
-        </div>
-
-        {/* CARD 3: STOCK REFILL CONSOLE */}
-        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-[0_4px_20px_rgb(0,0,0,0.01)]">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 font-mono">Inventory Refill Console</span>
-          <h4 className="text-sm font-extrabold text-slate-800 mt-2">Load Free Distribution Stock</h4>
-          
-          <form onSubmit={handleSystemTopUp} className="mt-3 flex items-center gap-2">
-            <input 
-              type="number"
-              value={topUpAmount}
-              onChange={(e) => setTopUpAmount(e.target.value)}
-              placeholder="Add e.g. 5000"
-              disabled={isSubmittingTopUp}
-              className="w-full text-xs font-mono p-2.5 rounded-xl border border-gray-300 focus:outline-none focus:border-blue-500 bg-white"
-              required
-            />
-            <button
-              type="submit"
-              disabled={isSubmittingTopUp}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
+          <div className="flex items-center gap-2">
+            <button 
+              type="button"
+              onClick={toggleTheme}
+              className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-black tracking-wide py-2.5 px-4 rounded-xl transition-all shadow-md self-stretch sm:self-auto"
             >
-              ➕ Add Stock
+              {isDark ? "☀️ Light" : "🌙 Dark"}
             </button>
-          </form>
-        </div>
-
-      </div>
-
-      {/* SYSTEM FEEDBACK BANNER ALERTS */}
-      {msg && (
-        <div className="p-4 bg-amber-50 text-amber-900 border border-amber-200 rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-sm animate-fade-in">
-          <div className="flex items-center space-x-2">
-            <span>⚙️</span>
-            <span>{msg}</span>
+            <button 
+              onClick={logout} 
+              type="button"
+              className="bg-red-500 hover:bg-red-600 active:scale-[0.98] text-white text-xs font-black tracking-wide py-2.5 px-4 rounded-xl transition-all shadow-md shadow-red-500/10 self-stretch sm:self-auto text-center"
+            >
+              🚪 Close System Console
+            </button>
           </div>
-          <button type="button" onClick={() => setMsg("")} className="text-amber-400 font-bold ml-2">✕</button>
-        </div>
-      )}
+        </header>
 
-      {/* REGISTERED USERS PANEL */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-        <div className="mb-5">
-          <h3 className="text-base font-extrabold text-gray-900 tracking-tight flex items-center space-x-2">
-            <span>👥</span>
-            <span>Registered Users</span>
-          </h3>
-          <p className="text-xs text-gray-400 mt-0.5">All registered accounts on the platform.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 font-mono">Available Stock Pool</span>
+                <button 
+                  onClick={fetchBalances}
+                  disabled={isSyncing}
+                  type="button"
+                  className={`text-xs p-1 rounded-md hover:bg-gray-100 ${isSyncing ? "animate-spin text-blue-500" : "text-gray-400"}`}
+                >
+                  🔄
+                </button>
+              </div>
+              <h4 className="text-sm font-extrabold text-gray-700 mt-2">Unallocated System Balance</h4>
+              <p className="text-[11px] text-gray-500 mt-0.5">Increases via form below; decreases when granted to users.</p>
+            </div>
+            <div className="mt-4">
+              <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-blue-600">
+                {unallocatedBalance !== null ? unallocatedBalance.toLocaleString() : "•••"}
+              </span>
+              <span className="text-[11px] font-bold text-gray-400 ml-1.5 uppercase tracking-wide">Units Free</span>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 font-mono">Live External Pool</span>
+              <h4 className="text-sm font-extrabold text-gray-700 mt-2">Aakash API Gateway Balance</h4>
+              <p className="text-[11px] text-gray-500 mt-0.5">Deducts only when live users physically fire out outbound SMS texts.</p>
+            </div>
+            <div className="mt-4">
+              <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-emerald-600">
+                {gatewayBalance !== null ? gatewayBalance.toLocaleString() : "•••"}
+              </span>
+              <span className="text-[11px] font-bold text-gray-400 ml-1.5 uppercase tracking-wide">Units on Server</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200">
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 font-mono">Inventory Refill Console</span>
+            <h4 className="text-sm font-extrabold text-gray-800 mt-2">Load Free Distribution Stock</h4>
+            
+            <form onSubmit={handleSystemTopUp} className="mt-3 flex items-center gap-2">
+              <input 
+                type="number"
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+                placeholder="Add e.g. 5000"
+                disabled={isSubmittingTopUp}
+                className="w-full text-xs font-mono p-2.5 rounded-xl border border-gray-300 focus:outline-none focus:border-violet-500 bg-white text-gray-900"
+                required
+              />
+              <button
+                type="submit"
+                disabled={isSubmittingTopUp}
+                className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
+              >
+                ➕ Add Stock
+              </button>
+            </form>
+          </div>
+
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-gray-200/60 shadow-sm">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50/70 border-b border-gray-200/60 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <th className="p-3.5">Name</th>
-                <th className="p-3.5">Email</th>
-                <th className="p-3.5">Role</th>
-                <th className="p-3.5">Balance</th>
-                <th className="p-3.5">Joined</th>
-              </tr>
-            </thead>
-            <tbody className="text-xs divide-y divide-gray-100 text-gray-700">
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-400 font-medium font-sans italic">
-                    No users registered yet.
-                  </td>
+        {msg && (
+          <div className="p-4 bg-amber-50 text-amber-900 border border-amber-200 rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-sm animate-fade-in">
+            <div className="flex items-center space-x-2">
+              <span>⚙️</span>
+              <span>{msg}</span>
+            </div>
+            <button type="button" onClick={() => setMsg("")} className="text-amber-500 font-bold ml-2">✕</button>
+          </div>
+        )}
+
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200">
+          <div className="mb-5">
+            <h3 className="text-base font-extrabold text-gray-800 tracking-tight flex items-center space-x-2">
+              <span>👥</span>
+              <span>Registered Users</span>
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">All registered accounts on the platform.</p>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th className="p-3.5">Name</th>
+                  <th className="p-3.5">Email</th>
+                  <th className="p-3.5">Role</th>
+                  <th className="p-3.5">Balance</th>
+                  <th className="p-3.5">Joined</th>
                 </tr>
-              ) : (
-                users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="p-3.5 font-bold text-gray-900">{u.name}</td>
-                    <td className="p-3.5 font-mono text-blue-600 font-semibold">{u.email}</td>
-                    <td className="p-3.5">
-                      <span className={`inline-block text-[10px] px-2.5 py-0.5 font-black rounded-md uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="p-3.5 font-black font-mono text-emerald-600">{u.sms_balance}</td>
-                    <td className="p-3.5 text-gray-400">{new Date(u.created_at).toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* REQUEST MANAGEMENT MONITOR PANEL */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-        <div className="mb-5">
-          <h3 className="text-base font-extrabold text-gray-900 tracking-tight flex items-center space-x-2">
-            <span>💳</span>
-            <span>Credit Load Allocation Requests</span>
-          </h3>
-          <p className="text-xs text-gray-400 mt-0.5">Approve incoming deposit assertions or audit chronological accounting records.</p>
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-gray-200/60 shadow-sm">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50/70 border-b border-gray-200/60 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <th className="p-3.5">User Details</th>
-                <th className="p-3.5">Requested Units</th>
-                <th className="p-3.5">Reference Log</th>
-                <th className="p-3.5">Current Status</th>
-                <th className="p-3.5 text-right">Actions Console</th>
-              </tr>
-            </thead>
-            <tbody className="text-xs divide-y divide-gray-100 text-gray-700">
-              {requests.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-400 font-medium font-sans">
-                    No credit acquisition manifests currently pending or archived inside system storage.
-                  </td>
-                </tr>
-              ) : (
-                requests.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="p-3.5">
-                      <div className="font-bold text-gray-900">{r.name}</div>
-                      <div className="text-[10px] text-gray-400 font-medium tracking-tight mt-0.5">{r.email}</div>
-                    </td>
-                    <td className="p-3.5 font-black text-blue-600 font-mono tracking-wide text-sm">{r.requested_credits} <span className="text-[10px] text-gray-400 font-bold font-sans">SMS</span></td>
-                    <td className="p-3.5 font-medium max-w-xs truncate text-gray-500" title={r.payment_reference}>{r.payment_reference}</td>
-                    <td className="p-3.5">
-                      <span className={`inline-block text-[10px] px-2.5 py-0.5 font-black rounded-md uppercase tracking-wider ${getStatusChipStyle(r.status)}`}>
-                        {r.status || "pending"}
-                      </span>
-                    </td>
-                    <td className="p-3.5 text-right">
-                      {r.status?.toLowerCase() === 'pending' ? (
-                        <button 
-                          onClick={() => approveRequest(r.id)} 
-                          type="button"
-                          className="bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white text-[11px] font-black tracking-wide py-2 px-3 rounded-lg shadow-sm transition-all whitespace-nowrap"
-                        >
-                          ✓ Approve Deposit
-                        </button>
-                      ) : (
-                        <span className="text-[11px] font-bold text-gray-400 pr-2 italic">Settled Ledger</span>
-                      )}
+              </thead>
+              <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
+                {users.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="p-8 text-center text-gray-400 font-medium font-sans italic">
+                      No users registered yet.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  users.map((u) => (
+                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3.5 font-bold text-gray-900">{u.name}</td>
+                      <td className="p-3.5 font-mono text-violet-600 font-semibold">{u.email}</td>
+                      <td className="p-3.5">
+                        <span className={`inline-block text-[10px] px-2.5 py-0.5 font-black rounded-md uppercase tracking-wider ${u.role === 'admin' ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="p-3.5 font-black font-mono text-emerald-600">{u.sms_balance}</td>
+                      <td className="p-3.5 text-gray-500">{new Date(u.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200">
+          <div className="mb-5">
+            <h3 className="text-base font-extrabold text-gray-800 tracking-tight flex items-center space-x-2">
+              <span>💳</span>
+              <span>Credit Load Allocation Requests</span>
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">Approve incoming deposit assertions or audit chronological accounting records.</p>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th className="p-3.5">User Details</th>
+                  <th className="p-3.5">Requested Units</th>
+                  <th className="p-3.5">Reference Log</th>
+                  <th className="p-3.5">Current Status</th>
+                  <th className="p-3.5 text-right">Actions Console</th>
+                </tr>
+              </thead>
+              <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
+                {requests.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="p-8 text-center text-gray-400 font-medium font-sans">
+                      No credit acquisition manifests currently pending or archived inside system storage.
+                    </td>
+                  </tr>
+                ) : (
+                  requests.map((r) => (
+                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3.5">
+                        <div className="font-bold text-gray-900">{r.name}</div>
+                        <div className="text-[10px] text-gray-400 font-medium tracking-tight mt-0.5">{r.email}</div>
+                      </td>
+                      <td className="p-3.5 font-black text-violet-600 font-mono tracking-wide text-sm">{r.requested_credits} <span className="text-[10px] text-gray-400 font-bold font-sans">SMS</span></td>
+                      <td className="p-3.5 font-medium max-w-xs truncate text-gray-500" title={r.payment_reference}>{r.payment_reference}</td>
+                      <td className="p-3.5">
+                        <span className={`inline-block text-[10px] px-2.5 py-0.5 font-black rounded-md uppercase tracking-wider ${getStatusChipStyle(r.status)}`}>
+                          {r.status || "pending"}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right">
+                        {r.status?.toLowerCase() === 'pending' ? (
+                          <button 
+                            onClick={() => approveRequest(r.id)} 
+                            type="button"
+                            className="bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white text-[11px] font-black tracking-wide py-2 px-3 rounded-lg shadow-sm transition-all whitespace-nowrap"
+                          >
+                            ✓ Approve Deposit
+                          </button>
+                        ) : (
+                          <span className="text-[11px] font-bold text-gray-400 pr-2 italic">Settled Ledger</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

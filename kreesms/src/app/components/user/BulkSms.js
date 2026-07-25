@@ -12,7 +12,6 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
   const [scheduledAt, setScheduledAt] = useState(""); 
   const [loading, setLoading] = useState(false);
 
-  // FIXED: Changed calculation metrics layout to match the strict 1 Credit per 160 Characters multiplication logic rule
   const charCount = bulkMessage.length;
   const creditCostPerRecipient = charCount === 0 ? 0 : Math.ceil(charCount / 160);
 
@@ -101,21 +100,19 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
   };
 
   return (
-    <div className="max-w-3xl bg-red-100 p-5 sm:p-8 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300">
+    <div className="max-w-3xl bg-gray-100 p-5 sm:p-8 rounded-2xl border border-gray-200 transition-all duration-300">
       
-      {/* SECTION TITLE HEADER */}
       <div className="mb-6">
-        <h3 className="text-xl font-extrabold text-gray-900 tracking-tight">Bulk SMS</h3>
-        <p className="text-xs text-gray-900 mt-1">Broadcast or schedule a single message outward to thousands of recipients seamlessly.</p>
+        <h3 className="text-xl font-extrabold text-gray-800 tracking-tight">Bulk SMS</h3>
+        <p className="text-xs text-gray-500 mt-1">Broadcast or schedule a single message outward to thousands of recipients seamlessly.</p>
       </div>
       
-      {/* SEGMENT TOGGLE NAVIGATION */}
-      <div className="flex bg-gray-100/80 p-1 rounded-xl items-center self-start w-full sm:w-fit mb-6 border border-gray-200/20">
+      <div className="flex bg-gray-200/50 p-1 rounded-xl items-center self-start w-full sm:w-fit mb-6 border border-gray-300/30">
         <button 
           type="button" 
           onClick={() => setSourceType("file")} 
           className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
-            sourceType === "file" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+            sourceType === "file" ? "bg-white text-violet-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
           }`}
         >
           <span>📁</span>
@@ -125,7 +122,7 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
           type="button" 
           onClick={() => setSourceType("group")} 
           className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
-            sourceType === "group" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
+            sourceType === "group" ? "bg-white text-violet-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
           }`}
         >
           <span>👥 Saved Phonebook Group</span>
@@ -134,26 +131,25 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
 
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* VIEW TYPE A: EXCEL SPREADSHEET DISK HANDLING */}
         {sourceType === "file" ? (
           <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100 gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-200 gap-2">
               <div className="flex items-center space-x-2 text-xs font-medium text-gray-600">
                 <span className="text-base">📋</span>
-                <span>Requires column header name: <code className="bg-gray-200/60 font-mono px-1.5 py-0.5 rounded text-blue-600 font-bold">mobile</code></span>
+                <span>Requires column header name: <code className="bg-gray-200 font-mono px-1.5 py-0.5 rounded text-violet-600 font-bold">mobile</code></span>
               </div>
               <button 
                 type="button" 
                 onClick={() => downloadSample("bulk")} 
-                className="text-blue-600 hover:text-blue-700 font-bold text-xs flex items-center space-x-1 self-start sm:self-auto transition-colors"
+                className="text-violet-600 hover:text-violet-700 font-bold text-xs flex items-center space-x-1 self-start sm:self-auto transition-colors"
               >
                 <span>📥 Download Sample Template</span>
               </button>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Upload Spreadsheet Data</label>
-              <div className="relative group border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-xl p-4 bg-gray-50/50 transition-colors flex flex-col items-center justify-center min-h-[110px]">
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Upload Spreadsheet Data</label>
+              <div className="relative group border-2 border-dashed border-gray-300 hover:border-violet-400 rounded-xl p-4 bg-gray-50/50 transition-colors flex flex-col items-center justify-center min-h-[110px]">
                 {!uploadedFile ? (
                   <>
                     <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📤</span>
@@ -169,7 +165,7 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
                     />
                   </>
                 ) : (
-                  <div className="flex items-center justify-between w-full bg-white border border-gray-100 p-3 rounded-xl shadow-sm animate-fade-in">
+                  <div className="flex items-center justify-between w-full bg-white border border-gray-200 p-3 rounded-xl shadow-sm animate-fade-in">
                     <div className="flex items-center space-x-3 truncate">
                       <span className="text-xl">📊</span>
                       <div className="truncate">
@@ -190,14 +186,13 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
             </div>
           </div>
         ) : (
-          /* VIEW TYPE B: DATABASE PHONBOOK SELECTOR MAPPING */
           <div className="animate-fade-in">
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Target Phonebook Segment</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Target Phonebook Segment</label>
             <div className="relative">
               <select 
                 value={selectedGroupId} 
                 required 
-                className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-xs font-medium transition-all appearance-none cursor-pointer text-gray-700" 
+                className="w-full p-3 border border-gray-300 rounded-xl bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none text-xs font-medium transition-all appearance-none cursor-pointer text-gray-700" 
                 onChange={e => setSelectedGroupId(e.target.value)}
               >
                 <option value="">-- Select Contact Group Segment --</option>
@@ -210,17 +205,15 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
           </div>
         )}
 
-        {/* BROADCAST TEXT FIELD CONTENT INPUT */}
         <div>
           <div className="flex justify-between items-center mb-1.5">
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Message Content Body</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Message Content Body</label>
             
-            {/* FIXED: Modern analytics widget chip tracking live strict character boundaries cost per user mapping */}
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors flex items-center space-x-1.5 ${
-              creditCostPerRecipient > 1 ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-gray-100 text-gray-500'
+              creditCostPerRecipient > 1 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-500'
             }`}>
               <span>{charCount} Chars</span>
-              <span className="text-gray-900">•</span>
+              <span className="text-gray-400">•</span>
               <span>Cost/User: <strong className="font-black text-xs">{creditCostPerRecipient}</strong> {creditCostPerRecipient === 1 ? 'Credit' : 'Credits'}</span>
             </span>
           </div>
@@ -229,31 +222,29 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
             required 
             rows="4" 
             value={bulkMessage} 
-            className="w-full p-3.5 border border-gray-800 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-xs leading-relaxed text-gray-700 transition-all placeholder-gray-400 shadow-inner bg-gray-50/30" 
+            className="w-full p-3.5 border border-gray-300 rounded-xl focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none text-xs leading-relaxed text-gray-900 transition-all placeholder-gray-400 bg-white" 
             onChange={(e) => setBulkMessage(e.target.value)} 
           />
         </div>
 
-        {/* TIME DELAY TIMETABLE CONTROLLER */}
-        <div className="bg-slate-50/80 p-4 rounded-xl border border-dashed border-slate-200 transition-colors hover:bg-slate-50">
-          <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1 flex items-center space-x-1.5">
+        <div className="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300 transition-colors hover:bg-gray-100">
+          <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-1 flex items-center space-x-1.5">
             <span>⏰</span>
             <span>Schedule for Future Release</span>
           </label>
-          <p className="text-[11px] text-gray-400 mb-3">Leave empty to deploy this campaign immediately right now.</p>
+          <p className="text-[11px] text-gray-500 mb-3">Leave empty to deploy this campaign immediately right now.</p>
           <input 
             type="datetime-local" 
             value={scheduledAt} 
-            className="p-2.5 border border-gray-200 rounded-xl text-xs font-semibold bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-gray-700 transition-all cursor-pointer" 
+            className="p-2.5 border border-gray-300 rounded-xl text-xs font-semibold bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none text-gray-700 transition-all cursor-pointer" 
             onChange={e => setScheduledAt(e.target.value)} 
           />
         </div>
 
-        {/* SUBMISSION ORDER DISPATCH CONTAINER */}
         <button 
           type="submit" 
           disabled={loading} 
-          className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white p-3.5 rounded-xl font-bold text-xs tracking-wide transition-all shadow-md shadow-blue-600/10 hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-2"
+          className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.99] text-white p-3.5 rounded-xl font-bold text-xs tracking-wide transition-all shadow-md shadow-indigo-600/10 hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-2"
         >
           <span>{loading ? "⚡" : scheduledAt ? "⏰" : "🚀"}</span>
           <span>

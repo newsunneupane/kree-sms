@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "./components/ThemeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,9 +21,41 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var t = localStorage.getItem('kreesms-theme');
+                  var d = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (d) {
+                    var r = document.documentElement;
+                    r.style.setProperty('--color-gray-50', '#020617');
+                    r.style.setProperty('--color-gray-100', '#0f172a');
+                    r.style.setProperty('--color-gray-200', '#1e293b');
+                    r.style.setProperty('--color-gray-300', '#334155');
+                    r.style.setProperty('--color-gray-400', '#475569');
+                    r.style.setProperty('--color-gray-500', '#64748b');
+                    r.style.setProperty('--color-gray-600', '#94a3b8');
+                    r.style.setProperty('--color-gray-700', '#cbd5e1');
+                    r.style.setProperty('--color-gray-800', '#e2e8f0');
+                    r.style.setProperty('--color-gray-900', '#f1f5f9');
+                    r.style.setProperty('--color-white', '#0f172a');
+                    r.style.setProperty('--background', '#0f172a');
+                    r.style.setProperty('--foreground', '#f1f5f9');
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

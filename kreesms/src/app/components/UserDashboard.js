@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
+import { useTheme } from "./ThemeContext";
 
-// Import individual modular section pages
 import SingleSms from "./user/SingleSms";
 import BulkSms from "./user/BulkSms";
 import DynamicSms from "./user/DynamicSms";
@@ -16,7 +16,7 @@ export default function UserDashboard({ user, logout }) {
   const [balance, setBalance] = useState(user.sms_balance);
   const [status, setStatus] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  const { isDark, toggleTheme } = useTheme();
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -70,9 +70,9 @@ export default function UserDashboard({ user, logout }) {
   ];
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full justify-between bg-slate-950">
+    <div className="flex flex-col h-full justify-between bg-gray-100">
       <div>
-        <div className="p-6 border-b border-slate-900 flex flex-col gap-1">
+        <div className="p-6 border-b border-gray-200 flex flex-col gap-1">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/20">
               कृ
@@ -81,7 +81,7 @@ export default function UserDashboard({ user, logout }) {
               KREESMS
             </h2>
           </div>
-          <span className="text-[10px] tracking-widest text-slate-500 font-bold uppercase mt-1">
+          <span className="text-[10px] tracking-widest text-gray-500 font-bold uppercase mt-1">
             SMS Gateway Portal
           </span>
         </div>
@@ -100,7 +100,7 @@ export default function UserDashboard({ user, logout }) {
                 className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
                   isActive 
                     ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/15" 
-                    : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                    : "text-gray-500 hover:bg-gray-200 hover:text-gray-800"
                 }`}
               >
                 <span className="text-base filter drop-shadow">{item.icon}</span>
@@ -110,11 +110,11 @@ export default function UserDashboard({ user, logout }) {
           })}
         </nav>
       </div>
-      <div className="p-4 border-t border-slate-900 bg-slate-950/60">
+      <div className="p-4 border-t border-gray-200 space-y-2">
         <button 
           onClick={logout} 
           type="button" 
-          className="w-full flex items-center justify-center space-x-2 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-150 border border-rose-500/10 hover:border-transparent text-sm active:scale-[0.98]"
+          className="w-full flex items-center justify-center space-x-2 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-150 border border-rose-500/10 hover:border-transparent text-sm active:scale-[0.98]"
         >
           <span>🚪</span>
           <span>Exit Workspace</span>
@@ -124,62 +124,66 @@ export default function UserDashboard({ user, logout }) {
   );
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden relative">
-      {/* Background ambient decorative glows */}
+    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden relative">
       <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/5 blur-[140px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[140px] pointer-events-none" />
 
-      {/* 1. DESKTOP STABLE SIDEBAR VIEW LAYER */}
-      <aside className="hidden lg:flex w-64 bg-slate-950 text-slate-100 flex-col flex-shrink-0 h-full border-r border-slate-900/60 z-20">
+      <aside className="hidden lg:flex w-64 bg-gray-100 text-gray-900 flex-col flex-shrink-0 h-full border-r border-gray-200 z-20">
         <SidebarContent />
       </aside>
 
-      {/* 2. RESPONSIVE MOBILE ACCESSIBILITY OVERLAY SIDE-DRAWER */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div 
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300"
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="relative flex flex-col w-full max-w-xs bg-slate-950 text-slate-100 h-full shadow-2xl z-10 border-r border-slate-900">
+          <aside className="relative flex flex-col w-full max-w-xs bg-gray-100 text-gray-900 h-full shadow-2xl z-10 border-r border-gray-200">
             <SidebarContent />
           </aside>
         </div>
       )}
 
-      {/* 3. WORKING VIEW CANVAS GRID WRAPPER */}
       <div className="flex-1 flex flex-col h-full overflow-hidden z-10">
         
-        {/* TOP SYSTEM NAV HEADER PROFILE MONITOR */}
-        <header className="bg-slate-950/40 backdrop-blur-md border-b border-slate-900/80 h-16 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 z-10">
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 z-10">
           <div className="flex items-center space-x-3">
             <button 
               type="button" 
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-400 hover:bg-slate-900 focus:outline-none transition-colors border border-slate-900"
+              className="lg:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-100 focus:outline-none transition-colors border border-gray-200"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             <div className="hidden sm:block">
-              <h1 className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Authorized Identity</h1>
-              <p className="text-sm font-bold text-slate-200 uppercase">{user.name}</p>
+              <h1 className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Authorized Identity</h1>
+              <p className="text-sm font-bold text-gray-800 uppercase">{user.name}</p>
             </div>
           </div>
-          
-          <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-xl flex items-center space-x-2 shadow-sm shadow-emerald-950/20">
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-            <span className="text-xs text-emerald-400 font-semibold tracking-wide">
-              Balance: <span className="text-sm font-black text-emerald-300">{balance}</span> Credits
-            </span>
+
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-xl flex items-center space-x-2 shadow-sm shadow-emerald-950/20">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+              <span className="text-xs text-emerald-600 font-semibold tracking-wide">
+                Balance: <span className="text-sm font-black text-emerald-700">{balance}</span> Credits
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-gray-200/80 hover:bg-gray-300 transition-all border border-gray-200 text-sm active:scale-95"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? "☀️" : "🌙"}
+            </button>
           </div>
         </header>
 
-        {/* WORKSPACE APP MOUNT POINT GRID CANVAS */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {status && (
-            <div className="p-4 mb-6 bg-violet-500/10 text-violet-300 border border-violet-500/20 rounded-xl text-xs sm:text-sm font-medium flex items-center justify-between shadow-lg shadow-slate-950/40">
+            <div className="p-4 mb-6 bg-violet-500/10 text-violet-700 border border-violet-500/20 rounded-xl text-xs sm:text-sm font-medium flex items-center justify-between shadow-lg">
               <div className="flex items-center space-x-2.5">
                 <span className="text-base">✨</span>
                 <span>{status}</span>
@@ -187,15 +191,14 @@ export default function UserDashboard({ user, logout }) {
               <button 
                 type="button" 
                 onClick={() => setStatus("")} 
-                className="text-slate-500 hover:text-slate-300 font-bold ml-2 transition-colors p-1"
+                className="text-gray-400 hover:text-gray-600 font-bold ml-2 transition-colors p-1"
               >
                 ✕
               </button>
             </div>
           )}
 
-          {/* PAGE MOUNT LAYOUT ROUTER CONTROLLER */}
-          <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 shadow-xl backdrop-blur-xl">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xl">
             {activeTab === "single" && <SingleSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} />}
             {activeTab === "bulk" && <BulkSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} downloadSample={downloadSample} />}
             {activeTab === "dynamic" && <DynamicSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} downloadSample={downloadSample} />}
