@@ -95,8 +95,10 @@ export default function Home() {
       const data = await res.json();
       
       if (data.success) {
-        setMsg({ text: "", type: "" });
-        setRegStep(3); // Shift view to admin verification hold grid lock screen
+        setMsg({ text: "Account created successfully! Please sign in.", type: "success" });
+        setIsRegister(false);
+        setRegStep(1);
+        setOtpCode("");
       } else {
         setMsg({ text: data.message, type: "error" });
       }
@@ -218,6 +220,7 @@ export default function Home() {
               <form onSubmit={handleOtpVerifySubmit} className="space-y-4 animate-fade-in">
                 <div className="text-center p-3.5 bg-slate-950/40 border border-slate-800/60 rounded-xl">
                   <p className="text-xs text-slate-400">A security access verification PIN was dispatched to <span className="text-violet-400 font-mono font-bold">{form.email}</span></p>
+                  <span className="text-violet-400 w-full font-mono font-bold"> The PIN can be in the spam folder.</span>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5 text-center font-mono tracking-widest">Enter Verification Code</label>
