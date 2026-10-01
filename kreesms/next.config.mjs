@@ -2,8 +2,10 @@
 const nextConfig = {
   /* config options here */
   reactCompiler: true,
-  // Keep node-native backend deps out of the Turbopack bundle so Sequelize
+  // Keep node-native backend deps out of the bundle so Sequelize
   // can require('pg') at runtime (fixes "Please install pg package manually").
+  // NOTE: production builds use webpack (`next build --webpack` in package.json)
+  // because Turbopack's externalization drops these from the Vercel lambda trace.
   serverExternalPackages: [
     "sequelize",
     "pg",
