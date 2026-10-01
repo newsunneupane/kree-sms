@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useTheme } from "./ThemeContext";
-
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { api } from "../../lib/client-api";
 
 export default function AdminDashboard({ admin, logout }) {
   const [requests, setRequests] = useState([]);
@@ -10,6 +9,7 @@ export default function AdminDashboard({ admin, logout }) {
   
   const [gatewayBalance, setGatewayBalance] = useState(null);
   const [unallocatedBalance, setUnallocatedBalance] = useState(null);
+  const [balanceLive, setBalanceLive] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [msg, setMsg] = useState("");
   
@@ -21,14 +21,14 @@ export default function AdminDashboard({ admin, logout }) {
     if (!admin?.id) return;
     setIsSyncing(true);
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/admin.php?action=get_gateway_balance&admin_id=${admin.id}`);
-      const data = await res.json();
+      const data = await api("/api/admin/gateway-balance");
       if (data.success) {
         setGatewayBalance(data.gateway_balance);
         setUnallocatedBalance(data.unallocated_balance);
+        setBalanceLive(data.live === true);
       }
     } catch (err) {
-      console.error("Failed to connect with live balance tracker:", err);
+      console.error("Could not load balances:", err);
     } finally {
       setIsSyncing(false);
     }
@@ -36,21 +36,19 @@ export default function AdminDashboard({ admin, logout }) {
 
   const loadRequests = async () => {
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/admin.php?action=get_requests&admin_id=${admin.id}`);
-      const data = await res.json();
+      const data = await api("/api/admin/requests");
       if (data.success) setRequests(data.data || []);
     } catch (err) {
-      console.error("Failed to synchronize administration requests manifest:", err);
+      console.error("Could not load credit requests:", err);
     }
   };
 
   const loadUsers = async () => {
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/admin.php?action=get_users&admin_id=${admin.id}`);
-      const data = await res.json();
+      const data = await api("/api/admin/users");
       if (data.success) setUsers(data.users || []);
     } catch (err) {
-      console.error("Failed to load users:", err);
+      console.error("Could not load users:", err);
     }
   };
 
@@ -67,46 +65,38 @@ export default function AdminDashboard({ admin, logout }) {
     if (!topUpAmount || parseInt(topUpAmount) <= 0) return;
     
     setIsSubmittingTopUp(true);
-    setMsg("Updating stock inventory ledger...");
+    setMsg("Adding credits...");
     
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/admin.php`, {
+      const data = await api("/api/admin/add-credit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          action: "add_gateway_credit", 
-          admin_id: admin.id, 
-          credits: parseInt(topUpAmount) 
-        }),
+        body: { credits: parseInt(topUpAmount) },
       });
-      const data = await res.json();
       setMsg(data.message);
       if(data.success) {
         setTopUpAmount("");
         fetchBalances(); 
       }
     } catch (err) {
-      setMsg("Failed to communicate with configuration database.");
+      setMsg("Could not update. Please try again.");
     } finally {
       setIsSubmittingTopUp(false);
     }
   };
 
   const approveRequest = async (id) => {
-    setMsg("Processing confirmation...");
+    setMsg("Approving...");
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/admin.php`, {
+      const data = await api("/api/admin/approve-request", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve_request", admin_id: admin.id, request_id: id }),
+        body: { request_id: id },
       });
-      const data = await res.json();
       setMsg(data.message);
       
       loadRequests();
       fetchBalances();
     } catch (err) {
-      setMsg("Critical network failure handling transaction authorization request.");
+      setMsg("Approval failed. Please try again.");
     }
   };
 
@@ -127,8 +117,8 @@ export default function AdminDashboard({ admin, logout }) {
         
         <header className="bg-gray-900 text-white p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg z-10">
           <div>
-            <h1 className="text-lg font-black tracking-wider text-blue-400 font-mono uppercase">KREESMS ADMIN</h1>
-            <p className="text-[11px] tracking-wide text-gray-400 mt-0.5">Master Gateway Node Operator Workspace ({admin?.name})</p>
+            <h1 className="text-lg font-black tracking-wider text-blue-400 font-mono uppercase">KreeSMS Admin</h1>
+            <p className="text-[11px] tracking-wide text-gray-400 mt-0.5">Signed in as {admin?.name}</p>
           </div>
           <div className="flex items-center gap-2">
             <button 
@@ -143,7 +133,7 @@ export default function AdminDashboard({ admin, logout }) {
               type="button"
               className="bg-red-500 hover:bg-red-600 active:scale-[0.98] text-white text-xs font-black tracking-wide py-2.5 px-4 rounded-xl transition-all shadow-md shadow-red-500/10 self-stretch sm:self-auto text-center"
             >
-              🚪 Close System Console
+              🚪 Log out
             </button>
           </div>
         </header>
@@ -153,7 +143,7 @@ export default function AdminDashboard({ admin, logout }) {
           <div className="bg-white p-5 rounded-2xl border border-gray-200 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 font-mono">Available Stock Pool</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 font-mono">System pool</span>
                 <button 
                   onClick={fetchBalances}
                   disabled={isSyncing}
@@ -163,34 +153,39 @@ export default function AdminDashboard({ admin, logout }) {
                   🔄
                 </button>
               </div>
-              <h4 className="text-sm font-extrabold text-gray-700 mt-2">Unallocated System Balance</h4>
-              <p className="text-[11px] text-gray-500 mt-0.5">Increases via form below; decreases when granted to users.</p>
+              <h4 className="text-sm font-extrabold text-gray-700 mt-2">Unallocated credits</h4>
+              <p className="text-[11px] text-gray-500 mt-0.5">Topped up below; reduced when granted to users.</p>
             </div>
             <div className="mt-4">
               <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-blue-600">
                 {unallocatedBalance !== null ? unallocatedBalance.toLocaleString() : "•••"}
               </span>
-              <span className="text-[11px] font-bold text-gray-400 ml-1.5 uppercase tracking-wide">Units Free</span>
+              <span className="text-[11px] font-bold text-gray-400 ml-1.5 uppercase tracking-wide">credits available</span>
             </div>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-gray-200 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 font-mono">Live External Pool</span>
-              <h4 className="text-sm font-extrabold text-gray-700 mt-2">Aakash API Gateway Balance</h4>
-              <p className="text-[11px] text-gray-500 mt-0.5">Deducts only when live users physically fire out outbound SMS texts.</p>
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 font-mono">Aakash gateway</span>
+              <h4 className="text-sm font-extrabold text-gray-700 mt-2">Gateway balance</h4>
+              <p className="text-[11px] text-gray-500 mt-0.5">Live balance from Aakash, refreshed on every view.</p>
             </div>
             <div className="mt-4">
               <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-emerald-600">
                 {gatewayBalance !== null ? gatewayBalance.toLocaleString() : "•••"}
               </span>
-              <span className="text-[11px] font-bold text-gray-400 ml-1.5 uppercase tracking-wide">Units on Server</span>
+              <span className="text-[11px] font-bold text-gray-400 ml-1.5 uppercase tracking-wide">credits</span>
+              {balanceLive !== null && (
+                <span className={`ml-2 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${balanceLive ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-amber-50 text-amber-600 border-amber-200"}`}>
+                  {balanceLive ? "● Live from Aakash" : "● Cached"}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200">
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 font-mono">Inventory Refill Console</span>
-            <h4 className="text-sm font-extrabold text-gray-800 mt-2">Load Free Distribution Stock</h4>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 font-mono">Top up</span>
+            <h4 className="text-sm font-extrabold text-gray-800 mt-2">Add credits to the pool</h4>
             
             <form onSubmit={handleSystemTopUp} className="mt-3 flex items-center gap-2">
               <input 
@@ -207,7 +202,7 @@ export default function AdminDashboard({ admin, logout }) {
                 disabled={isSubmittingTopUp}
                 className="bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
               >
-                ➕ Add Stock
+                ➕ Add
               </button>
             </form>
           </div>
@@ -228,9 +223,9 @@ export default function AdminDashboard({ admin, logout }) {
           <div className="mb-5">
             <h3 className="text-base font-extrabold text-gray-800 tracking-tight flex items-center space-x-2">
               <span>👥</span>
-              <span>Registered Users</span>
+              <span>Users</span>
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">All registered accounts on the platform.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Everyone with an account.</p>
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
@@ -248,7 +243,7 @@ export default function AdminDashboard({ admin, logout }) {
                 {users.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="p-8 text-center text-gray-400 font-medium font-sans italic">
-                      No users registered yet.
+                      No users yet.
                     </td>
                   </tr>
                 ) : (
@@ -275,27 +270,27 @@ export default function AdminDashboard({ admin, logout }) {
           <div className="mb-5">
             <h3 className="text-base font-extrabold text-gray-800 tracking-tight flex items-center space-x-2">
               <span>💳</span>
-              <span>Credit Load Allocation Requests</span>
+              <span>Credit requests</span>
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">Approve incoming deposit assertions or audit chronological accounting records.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Review and approve user top-up requests.</p>
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <th className="p-3.5">User Details</th>
-                  <th className="p-3.5">Requested Units</th>
-                  <th className="p-3.5">Reference Log</th>
-                  <th className="p-3.5">Current Status</th>
-                  <th className="p-3.5 text-right">Actions Console</th>
+                  <th className="p-3.5">User</th>
+                  <th className="p-3.5">Credits</th>
+                  <th className="p-3.5">Reference</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
                 {requests.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="p-8 text-center text-gray-400 font-medium font-sans">
-                      No credit acquisition manifests currently pending or archived inside system storage.
+                      No credit requests.
                     </td>
                   </tr>
                 ) : (
@@ -305,7 +300,7 @@ export default function AdminDashboard({ admin, logout }) {
                         <div className="font-bold text-gray-900">{r.name}</div>
                         <div className="text-[10px] text-gray-400 font-medium tracking-tight mt-0.5">{r.email}</div>
                       </td>
-                      <td className="p-3.5 font-black text-violet-600 font-mono tracking-wide text-sm">{r.requested_credits} <span className="text-[10px] text-gray-400 font-bold font-sans">SMS</span></td>
+                      <td className="p-3.5 font-black text-violet-600 font-mono tracking-wide text-sm">{r.requested_credits} <span className="text-[10px] text-gray-400 font-bold font-sans">credits</span></td>
                       <td className="p-3.5 font-medium max-w-xs truncate text-gray-500" title={r.payment_reference}>{r.payment_reference}</td>
                       <td className="p-3.5">
                         <span className={`inline-block text-[10px] px-2.5 py-0.5 font-black rounded-md uppercase tracking-wider ${getStatusChipStyle(r.status)}`}>
@@ -319,10 +314,10 @@ export default function AdminDashboard({ admin, logout }) {
                             type="button"
                             className="bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white text-[11px] font-black tracking-wide py-2 px-3 rounded-lg shadow-sm transition-all whitespace-nowrap"
                           >
-                            ✓ Approve Deposit
+                            ✓ Approve
                           </button>
                         ) : (
-                          <span className="text-[11px] font-bold text-gray-400 pr-2 italic">Settled Ledger</span>
+                          <span className="text-[11px] font-bold text-gray-400 pr-2 italic">Done</span>
                         )}
                       </td>
                     </tr>

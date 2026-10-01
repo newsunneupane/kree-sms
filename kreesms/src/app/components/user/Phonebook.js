@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { api } from "../../../lib/client-api";
 
 export default function Phonebook({ userId, setStatus }) {
   const [groups, setGroups] = useState([]);
@@ -22,17 +22,16 @@ export default function Phonebook({ userId, setStatus }) {
 
   const fetchDirectory = async () => {
     try {
-      const res = await fetch(
-        `${baseUrl}/sms-backend/phonebook.php?action=get_phonebook&user_id=${userId}&page=${currentPage}&limit=${itemsPerPage}`
+      const data = await api(
+        `/api/phonebook/get-phonebook?page=${currentPage}&limit=${itemsPerPage}`
       );
-      const data = await res.json();
       if (data.success) {
         setGroups(data.groups || []);
         setContacts(data.contacts || []);
         setTotalContacts(data.total_contacts || data.contacts?.length || 0);
       }
     } catch (err) { 
-      console.error("Directory synchronizer error context:", err); 
+      console.error("Could not load contacts:", err); 
     }
   };
 
@@ -78,21 +77,15 @@ export default function Phonebook({ userId, setStatus }) {
   const handleBulkSubmit = async (e) => {
     e.preventDefault();
     if (bulkPreview.length === 0) {
-      setStatus("No valid records found to compile.");
+      setStatus("No valid rows found.");
       return;
     }
 
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/phonebook.php`, {
+      const data = await api("/api/phonebook/add-bulk-contacts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "add_bulk_contacts",
-          user_id: userId,
-          contacts: bulkPreview
-        })
+        body: { contacts: bulkPreview },
       });
-      const data = await res.json();
       setStatus(data.message);
       if (data.success) {
         setBulkCsvText("");
@@ -102,7 +95,7 @@ export default function Phonebook({ userId, setStatus }) {
         fetchDirectory();
       }
     } catch (err) {
-      setStatus("Error writing bulk entries array.");
+      setStatus("Import failed. Please try again.");
     }
   };
 
@@ -132,22 +125,18 @@ export default function Phonebook({ userId, setStatus }) {
   const handleAddGroupWithContacts = async (e) => {
     e.preventDefault();
     if (selectedContactIds.length === 0) {
-      setStatus("Please select at least one contact using the checkboxes to build this segment.");
+      setStatus("Select at least one contact first.");
       return;
     }
 
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/phonebook.php`, {
+      const data = await api("/api/phonebook/add-group-with-relations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          action: "add_group_with_relations", 
-          user_id: userId, 
+        body: {
           contact_ids: selectedContactIds,
-          ...newGroup 
-        })
+          ...newGroup,
+        },
       });
-      const data = await res.json();
       setStatus(data.message);
       if (data.success) { 
         setNewGroup({ group_name: "", description: "" }); 
@@ -156,26 +145,24 @@ export default function Phonebook({ userId, setStatus }) {
         fetchDirectory(); 
       }
     } catch (err) { 
-      setStatus("Error compiling linked group relations schema."); 
+      setStatus("Could not create the group. Please try again."); 
     }
   };
 
   const handleAddSingleContact = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/phonebook.php`, {
+      const data = await api("/api/phonebook/add-contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add_contact", user_id: userId, ...newContact })
+        body: { ...newContact },
       });
-      const data = await res.json();
       setStatus(data.message);
       if (data.success) { 
         setNewContact({ firstname: "", lastname: "", mobile: "" }); 
         fetchDirectory(); 
       }
     } catch (err) { 
-      setStatus("Error writing database contact tracking record."); 
+      setStatus("Could not add the contact. Please try again."); 
     }
   };
 
@@ -186,8 +173,8 @@ export default function Phonebook({ userId, setStatus }) {
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
         <div>
-          <h2 className="text-sm font-black text-gray-800 uppercase tracking-wider">Dynamic Directory Core</h2>
-          <p className="text-[11px] text-gray-400">Total system entries logged: <span className="font-mono font-bold text-violet-600">{totalContacts}</span> records</p>
+          <h2 className="text-sm font-black text-gray-800 uppercase tracking-wider">Contacts</h2>
+          <p className="text-[11px] text-gray-400"><span className="font-mono font-bold text-violet-600">{totalContacts}</span> contacts saved</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -195,7 +182,7 @@ export default function Phonebook({ userId, setStatus }) {
             onClick={downloadSampleTemplate}
             className="bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5"
           >
-            📥 Download Template
+            📥 Sample CSV
           </button>
           
           <button
@@ -210,7 +197,7 @@ export default function Phonebook({ userId, setStatus }) {
                 : "bg-gray-900 hover:bg-black text-white"
             }`}
           >
-            {isGroupMode ? "✕ Exit Group Builder" : "👥 Make a Group"}
+            {isGroupMode ? "✕ Close group builder" : "👥 New group"}
           </button>
 
           <button
@@ -218,7 +205,7 @@ export default function Phonebook({ userId, setStatus }) {
             onClick={() => setShowBulkPortal(!showBulkPortal)}
             className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-md shadow-violet-600/10"
           >
-            {showBulkPortal ? "✕ Hide Import" : "📋 Mass Bulk Upload"}
+            {showBulkPortal ? "✕ Hide import" : "📋 Bulk import"}
           </button>
         </div>
       </div>
@@ -227,8 +214,8 @@ export default function Phonebook({ userId, setStatus }) {
         <div className="bg-gray-900 text-white p-5 sm:p-6 rounded-2xl border border-gray-800 shadow-xl transition-all animate-fade-in grid md:grid-cols-2 gap-6">
           <form onSubmit={handleBulkSubmit} className="space-y-3.5">
             <div>
-              <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest font-mono">Mass Bulk Text Area Pipeline</h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">Paste raw spreadsheet lines including headers directly down below.</p>
+              <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest font-mono">Bulk import</h3>
+              <p className="text-[11px] text-gray-400 mt-0.5">Paste rows below, starting with a header line like firstname,lastname,mobile.</p>
             </div>
             <textarea
               rows={6}
@@ -242,18 +229,18 @@ export default function Phonebook({ userId, setStatus }) {
               type="submit"
               className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all"
             >
-              🚀 Process and Inject Matrix Stream ({bulkPreview.length} Records Loaded)
+              🚀 Import {bulkPreview.length} contacts
             </button>
           </form>
 
           <div className="flex flex-col h-full justify-between">
             <div>
-              <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest font-mono">Live Validation Interceptor Preview</h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">Parsed data properties map values cleanly before committing to disk tables.</p>
+              <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest font-mono">Preview</h3>
+              <p className="text-[11px] text-gray-400 mt-0.5">Check the parsed rows before importing.</p>
             </div>
             <div className="mt-3 bg-gray-950 border border-gray-800 rounded-xl p-3 h-40 overflow-y-auto font-mono text-[11px] text-gray-400 divide-y divide-gray-900">
               {bulkPreview.length === 0 ? (
-                <div className="text-center text-gray-600 py-12 italic">Waiting for text layout matrix payload parsing inputs...</div>
+                <div className="text-center text-gray-600 py-12 italic">Paste data on the left to preview rows here...</div>
               ) : (
                 bulkPreview.map((item, index) => (
                   <div key={index} className="py-1.5 flex justify-between items-center">
@@ -274,18 +261,18 @@ export default function Phonebook({ userId, setStatus }) {
             <div className="mb-4">
               <h3 className="text-sm font-black text-blue-900 uppercase tracking-wider flex items-center space-x-2">
                 <span>⚡</span>
-                <span>Segment Assembler Tool</span>
+                <span>New group</span>
               </h3>
               <p className="text-[11px] text-blue-700 mt-0.5">
-                Check boxes next to contacts in the directory index table below, fill out group metadata fields, then confirm creation.
+                Tick contacts in the table below, name the group, then create it.
               </p>
             </div>
             <form onSubmit={handleAddGroupWithContacts} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Group Name</label>
+                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Group name</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Premium VIP Clients" 
+                  placeholder="e.g. VIP customers" 
                   required 
                   value={newGroup.group_name}
                   className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all shadow-sm" 
@@ -293,10 +280,10 @@ export default function Phonebook({ userId, setStatus }) {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Short Remarks Description</label>
+                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Description (optional)</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Whitelisted marketing target list" 
+                  placeholder="e.g. Marketing list" 
                   value={newGroup.description}
                   className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all shadow-sm" 
                   onChange={e => setNewGroup({...newGroup, description: e.target.value})} 
@@ -306,7 +293,7 @@ export default function Phonebook({ userId, setStatus }) {
                 type="submit" 
                 className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-3 rounded-xl text-xs font-bold tracking-wide transition-all shadow-md h-[46px]"
               >
-                Assemble Group From Checked Contacts ({selectedContactIds.length} Selected)
+                Create group ({selectedContactIds.length} selected)
               </button>
             </form>
           </div>
@@ -317,14 +304,14 @@ export default function Phonebook({ userId, setStatus }) {
             <div className="mb-4">
               <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center space-x-2">
                 <span>👤</span>
-                <span>Single Entry Contact Node</span>
+                <span>Add contact</span>
               </h3>
-              <p className="text-[11px] text-gray-500 mt-0.5">Save single recipient mapping identities straight into database tables.</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Add one contact to your phonebook.</p>
             </div>
             <form onSubmit={handleAddSingleContact} className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
               <input 
                 type="text" 
-                placeholder="First Name" 
+                placeholder="First name" 
                 required
                 value={newContact.firstname} 
                 className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all" 
@@ -332,7 +319,7 @@ export default function Phonebook({ userId, setStatus }) {
               />
               <input 
                 type="text" 
-                placeholder="Last Name" 
+                placeholder="Last name" 
                 value={newContact.lastname} 
                 className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all" 
                 onChange={e => setNewContact({...newContact, lastname: e.target.value})} 
@@ -340,7 +327,7 @@ export default function Phonebook({ userId, setStatus }) {
               <div className="flex gap-2">
                 <input 
                   type="text" 
-                  placeholder="Mobile Number (e.g. 98XXXXXXXX)" 
+                  placeholder="Mobile number (e.g. 98XXXXXXXX)" 
                   required 
                   value={newContact.mobile} 
                   className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all" 
@@ -361,12 +348,12 @@ export default function Phonebook({ userId, setStatus }) {
       <div className="bg-gray-100 p-5 sm:p-6 rounded-2xl border border-gray-200">
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div>
-            <h3 className="text-base font-extrabold text-gray-800 tracking-tight">Saved Directory System Array</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Displaying items {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalContacts)} of {totalContacts}</p>
+            <h3 className="text-base font-extrabold text-gray-800 tracking-tight">Contacts</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalContacts)} of {totalContacts}</p>
           </div>
           {isGroupMode && (
             <div className="text-xs font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 animate-pulse">
-              ⚙️ GROUP MODE ACTIVE: Use checkboxes to select audience paths
+              ⚙️ Tick contacts to add them to the new group
             </div>
           )}
         </div>
@@ -385,16 +372,16 @@ export default function Phonebook({ userId, setStatus }) {
                     />
                   </th>
                 )}
-                <th className="p-3.5">Identity Name</th>
-                <th className="p-3.5">Mobile Destination</th>
-                <th className="p-3.5">Assigned Segment Partition</th>
+                <th className="p-3.5">Name</th>
+                <th className="p-3.5">Mobile</th>
+                <th className="p-3.5">Group</th>
               </tr>
             </thead>
             <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
               {contacts.length === 0 ? (
                 <tr>
                   <td colSpan={isGroupMode ? 4 : 3} className="p-8 text-center text-gray-400 font-medium font-sans">
-                    No active contact cards initialized inside your repository.
+                    No contacts yet. Add one above to get started.
                   </td>
                 </tr>
               ) : (
@@ -421,7 +408,7 @@ export default function Phonebook({ userId, setStatus }) {
                           : "bg-gray-100 text-gray-500 border border-gray-200"
                       }`}>
                         <span>{c.group_name ? "👥" : "👤"}</span>
-                        <span>{c.group_name || "Unassigned Pool"}</span>
+                        <span>{c.group_name || "No group"}</span>
                       </span>
                     </td>
                   </tr>

@@ -10,6 +10,7 @@ import CreditTransfer from "./user/CreditTransfer";
 import SmsHistory from "./user/SmsHistory";
 import ScheduleSms from "./user/ScheduleSms";
 import Phonebook from "./user/Phonebook";
+import { api } from "../../lib/client-api";
 
 export default function UserDashboard({ user, logout }) {
   const [activeTab, setActiveTab] = useState("single"); 
@@ -18,12 +19,9 @@ export default function UserDashboard({ user, logout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
   const syncBalance = async () => {
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/user.php?action=get_profile&user_id=${user.id}`);
-      const data = await res.json();
+      const data = await api("/api/user/profile");
       if (data.success) setBalance(data.data.sms_balance);
     } catch (err) {
       console.error("Failed to sync balance:", err);
@@ -56,17 +54,17 @@ export default function UserDashboard({ user, logout }) {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
     XLSX.writeFile(workbook, filename);
-    setStatus(`Downloaded template folder array artifact: ${filename}`);
+    setStatus(`Sample template downloaded: ${filename}`);
   };
 
   const navItems = [
-    { id: "single", label: "Single SMS ", icon: "💬" },
+    { id: "single", label: "Single SMS", icon: "💬" },
     { id: "bulk", label: "Bulk SMS", icon: "📁" },
     { id: "dynamic", label: "Dynamic SMS", icon: "⚡" },
-    { id: "schedule", label: "Scheduled SMS", icon: "⏰" },
-    { id: "phonebook", label: "Phonebook and Groups", icon: "👥" }, 
-    { id: "credit", label: "Request Balance Load", icon: "💳" },
-    { id: "history", label: "Reports", icon: "📊" },
+    { id: "schedule", label: "Scheduled", icon: "⏰" },
+    { id: "phonebook", label: "Phonebook", icon: "👥" }, 
+    { id: "credit", label: "Buy Credits", icon: "💳" },
+    { id: "history", label: "History", icon: "📊" },
   ];
 
   const SidebarContent = () => (
@@ -82,7 +80,7 @@ export default function UserDashboard({ user, logout }) {
             </h2>
           </div>
           <span className="text-[10px] tracking-widest text-gray-500 font-bold uppercase mt-1">
-            SMS Gateway Portal
+            SMS Gateway
           </span>
         </div>
         <nav className="p-4 space-y-1">
@@ -117,7 +115,7 @@ export default function UserDashboard({ user, logout }) {
           className="w-full flex items-center justify-center space-x-2 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-150 border border-rose-500/10 hover:border-transparent text-sm active:scale-[0.98]"
         >
           <span>🚪</span>
-          <span>Exit Workspace</span>
+          <span>Log out</span>
         </button>
       </div>
     </div>
@@ -158,7 +156,7 @@ export default function UserDashboard({ user, logout }) {
               </svg>
             </button>
             <div className="hidden sm:block">
-              <h1 className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Authorized Identity</h1>
+              <h1 className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Signed in as</h1>
               <p className="text-sm font-bold text-gray-800 uppercase">{user.name}</p>
             </div>
           </div>
@@ -167,7 +165,7 @@ export default function UserDashboard({ user, logout }) {
             <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-xl flex items-center space-x-2 shadow-sm shadow-emerald-950/20">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
               <span className="text-xs text-emerald-600 font-semibold tracking-wide">
-                Balance: <span className="text-sm font-black text-emerald-700">{balance}</span> Credits
+                Balance: <span className="text-sm font-black text-emerald-700">{balance}</span> credits
               </span>
             </div>
             <button

@@ -6,13 +6,27 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migrate": "node scripts/migrate.mjs",
+    "seed": "node scripts/seed.mjs",
+    "env-check": "node scripts/env-check.mjs",
+    "reset-db": "node scripts/reset-db.mjs",
+    "cron:local": "node scripts/cron-local.mjs"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.6.1",
+    "jsonwebtoken": "^9.0.3",
     "next": "16.2.9",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.23.1",
+    "pg-hstore": "^2.3.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "xlsx": "^0.18.5"
+    "sequelize": "^6.37.8",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

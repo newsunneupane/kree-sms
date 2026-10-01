@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { api } from "../../../lib/client-api";
+import { smsCreditCost } from "../../../lib/sms-segments";
 
 export default function DynamicSms({ userId, setStatus, syncBalance, downloadSample }) {
   const [sourceType, setSourceType] = useState("file"); 
@@ -13,16 +14,15 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
   const [loading, setLoading] = useState(false);
 
   const charCount = dynamicTemplate.length;
-  const baseCreditCost = charCount === 0 ? 0 : Math.ceil(charCount / 160);
+  const baseCreditCost = smsCreditCost(dynamicTemplate);
 
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const res = await fetch(`${baseUrl}/sms-backend/phonebook.php?action=get_phonebook&user_id=${userId}`);
-        const data = await res.json();
+        const data = await api("/api/phonebook/get-phonebook?limit=100");
         if (data.success) setGroups(data.groups);
       } catch (err) { 
-        console.error("Failed to fetch segmentation groups:", err); 
+        console.error("Could not load groups:", err); 
       }
     };
     if (userId) {
@@ -39,14 +39,14 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setStatus("Compiling tailored data matrices tracks...");
+    setStatus("Preparing your campaign...");
 
     try {
       let compiledCsvText = "";
 
       if (sourceType === "file") {
         if (!uploadedFile) {
-          setStatus("Please select an input sheet file.");
+          setStatus("Please choose a file first.");
           setLoading(false);
           return;
         }
@@ -72,25 +72,21 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
         });
       } else {
         if (!selectedGroupId || !dynamicTemplate) {
-          setStatus("Please populate group fields and templates inputs.");
+          setStatus("Please choose a group and write a template.");
           setLoading(false);
           return;
         }
         compiledCsvText = `SYSTEM_DYNAMIC_GROUP:${selectedGroupId}||TEMPLATE:${dynamicTemplate}`;
       }
 
-      const res = await fetch(`${baseUrl}/sms-backend/user.php`, {
+      const backendData = await api("/api/user/send-sms", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "send_sms",
+        body: {
           sms_type: "dynamic",
-          user_id: userId,
           csv_raw_text: compiledCsvText,
-          scheduled_at: scheduledAt 
-        }),
+          scheduled_at: scheduledAt || undefined,
+        },
       });
-      const backendData = await res.json();
       setStatus(backendData.message);
       if (backendData.success) {
         setDynamicTemplate("");
@@ -98,7 +94,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
         handleRemoveFile();
       }
     } catch (err) {
-      setStatus("An transmission line pipeline error crashed execution.");
+      setStatus("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
       await syncBalance();
@@ -110,7 +106,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
       
       <div className="mb-6">
         <h3 className="text-xl font-extrabold text-gray-800 tracking-tight">Dynamic SMS</h3>
-        <p className="text-xs text-gray-500 mt-1">Deliver custom, contact-specific message strings using file mapping or saved internal parameters.</p>
+        <p className="text-xs text-gray-500 mt-1">Send a personalized message to each recipient.</p>
       </div>
       
       <div className="flex bg-gray-200/50 p-1 rounded-xl items-center self-start w-full sm:w-fit mb-6 border border-gray-300/30">
@@ -121,7 +117,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
             sourceType === "file" ? "bg-white text-violet-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
           }`}
         >
-          <span>📁 File Source Mapping</span>
+          <span>📁 Upload file</span>
         </button>
         <button 
           type="button" 
@@ -130,7 +126,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
             sourceType === "group" ? "bg-white text-violet-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
           }`}
         >
-          <span>👥 Live Phonebook Group</span>
+          <span>👥 Phonebook group</span>
         </button>
       </div>
 
@@ -140,7 +136,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-200 gap-2">
               <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-gray-600">
-                <span>📋 Headers required:</span>
+                <span>📋 Your file needs these columns:</span>
                 <code className="bg-gray-200 font-mono px-1.5 py-0.5 rounded text-violet-600 font-bold">mobile</code>
                 <span>&amp;</span>
                 <code className="bg-gray-200 font-mono px-1.5 py-0.5 rounded text-violet-600 font-bold">message</code>
@@ -150,17 +146,17 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
                 onClick={() => downloadSample("dynamic")} 
                 className="text-violet-600 hover:text-violet-700 font-bold text-xs flex items-center space-x-1 self-start sm:self-auto transition-colors"
               >
-                <span>📥 Download Sample Layout</span>
+                <span>📥 Download sample</span>
               </button>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Select Input Spreadsheets</label>
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Upload file</label>
               <div className="relative group border-2 border-dashed border-gray-300 hover:border-violet-400 rounded-xl p-4 bg-gray-50/50 transition-colors flex flex-col items-center justify-center min-h-[110px]">
                 {!uploadedFile ? (
                   <>
                     <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📤</span>
-                    <span className="text-xs text-gray-500 font-medium">Choose file containing unique number and content maps</span>
+                    <span className="text-xs text-gray-500 font-medium">File with a mobile column and a message column</span>
                     <span className="text-[10px] text-gray-400 mt-0.5">Supports .csv, .xls, .xlsx</span>
                     <input 
                       id="dynamicFileInput"
@@ -195,7 +191,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
         ) : (
           <div className="space-y-5 animate-fade-in">
             <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Target Phonebook Group Segment</label>
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Phonebook group</label>
               <div className="relative">
                 <select 
                   value={selectedGroupId} 
@@ -203,7 +199,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
                   className="w-full p-3 border border-gray-300 rounded-xl bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none text-xs font-medium transition-all appearance-none cursor-pointer text-gray-700" 
                   onChange={e => setSelectedGroupId(e.target.value)}
                 >
-                  <option value="">-- Choose Segment Group --</option>
+                  <option value="">-- Choose a group --</option>
                   {groups.map(g => (
                     <option key={g.id} value={g.id}>👥 {g.group_name} {g.description ? `(${g.description})` : ''}</option>
                   ))}
@@ -214,20 +210,20 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
 
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Dynamic Message Template Layout</label>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Message template</label>
                 
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors flex items-center space-x-1.5 ${
                   baseCreditCost > 1 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-500'
                 }`}>
-                  <span>{charCount} Chars</span>
+                  <span>{charCount} chars</span>
                   <span className="text-gray-400">•</span>
-                  <span>Base Cost: <strong className="font-black text-xs">{baseCreditCost}</strong> {baseCreditCost === 1 ? 'Credit/User' : 'Credits/User'}</span>
+                  <span>Base cost: <strong className="font-black text-xs">{baseCreditCost}</strong> {baseCreditCost === 1 ? 'credit/recipient' : 'credits/recipient'}</span>
                 </span>
               </div>
 
               <div className="bg-blue-50 border border-blue-100 text-blue-800 text-xs p-3 rounded-xl mb-3 flex items-start space-x-2">
                 <span className="text-sm mt-0.5">💡</span>
-                <p className="leading-relaxed">Use the placeholder tag <code className="bg-blue-100 font-mono px-1 py-0.5 rounded font-bold text-blue-700">{"{name}"}</code> to swap in recipient names. Note: Actual credit deductions per user adjust if their full name pushes the message length past a 160-character boundary tier!</p>
+                <p className="leading-relaxed">Use <code className="bg-blue-100 font-mono px-1 py-0.5 rounded font-bold text-blue-700">{"{name}"}</code> to insert each recipient's name. Heads up: longer names can push a message into the next 160-character (or 70-character Unicode) tier and cost an extra credit.</p>
               </div>
               
               <textarea 
@@ -245,9 +241,9 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
         <div className="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300 transition-colors hover:bg-gray-100">
           <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-1 flex items-center space-x-1.5">
             <span>⏰</span>
-            <span>Schedule Campaign Trigger</span>
+            <span>Schedule for later</span>
           </label>
-          <p className="text-[11px] text-gray-500 mb-3">Leave empty to dispatch these personalized streams immediately.</p>
+          <p className="text-[11px] text-gray-500 mb-3">Leave empty to send immediately.</p>
           <input 
             type="datetime-local" 
             value={scheduledAt} 
@@ -263,7 +259,7 @@ export default function DynamicSms({ userId, setStatus, syncBalance, downloadSam
         >
           <span>{loading ? "⚡" : scheduledAt ? "⏰" : "🚀"}</span>
           <span>
-            {loading ? "Processing Dynamic Pipelines..." : scheduledAt ? "Schedule Personalized Campaign" : "Execute Parameter Campaign Blast"}
+            {loading ? "Sending..." : scheduledAt ? "Schedule campaign" : "Send now"}
           </span>
         </button>
       </form>

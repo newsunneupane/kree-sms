@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { api } from "../../../lib/client-api";
+import { smsSegments } from "../../../lib/sms-segments";
 
 export default function ScheduleSms({ userId, setStatus }) {
   const [scheduleData, setScheduleData] = useState({ recipient: "", message: "", scheduled_at: "" });
@@ -8,21 +9,17 @@ export default function ScheduleSms({ userId, setStatus }) {
   const [loading, setLoading] = useState(false);
 
   const charCount = scheduleData.message.length;
-  const creditCost = charCount === 0 ? 0 : Math.ceil(charCount / 160);
+  const seg = smsSegments(scheduleData.message);
+  const creditCost = seg.segments;
 
   const fetchQueue = async () => {
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/schedule.php?action=get_scheduled&user_id=${userId}`);
-      if (!res.ok) {
-        console.error("Server responded with a bad status code");
-        return;
-      }
-      const data = await res.json();
+      const data = await api("/api/schedule/get-scheduled");
       if (data.success) {
         setQueue(data.data || []);
       }
     } catch (err) {
-      console.error("Failed to parse calendar queue schedules framework:", err);
+      console.error("Could not load scheduled messages:", err);
     }
   };
 
@@ -36,24 +33,17 @@ export default function ScheduleSms({ userId, setStatus }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch(`${baseUrl}/sms-backend/schedule.php`, {
+      const data = await api("/api/schedule/schedule-sms", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "schedule_sms",
-          user_id: userId,
-          sms_type: "single",
-          ...scheduleData
-        })
+        body: { ...scheduleData },
       });
-      const data = await res.json();
       setStatus(data.message);
       if (data.success) {
         setScheduleData({ recipient: "", message: "", scheduled_at: "" });
         fetchQueue();
       }
     } catch (err) {
-      setStatus("Error booking operational pipeline layout.");
+      setStatus("Could not schedule the message. Please try again.");
     } finally { 
       setLoading(false); 
     }
@@ -79,12 +69,12 @@ export default function ScheduleSms({ userId, setStatus }) {
             <span>⏰</span>
             <span>Schedule SMS</span>
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">Queue individual transmission records for targeted delayed time releases.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Write a message now, send it later.</p>
         </div>
 
         <form onSubmit={handleSchedule} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Target Recipient</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Phone number</label>
             <input 
               type="text" 
               placeholder="e.g. 98XXXXXXXX" 
@@ -96,7 +86,7 @@ export default function ScheduleSms({ userId, setStatus }) {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Execution Release Datetime</label>
+            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Send at</label>
             <input 
               type="datetime-local" 
               required 
@@ -108,19 +98,19 @@ export default function ScheduleSms({ userId, setStatus }) {
 
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">SMS Message Body Text</label>
+              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Message</label>
               
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors flex items-center space-x-1.5 ${
                 creditCost > 1 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-500'
               }`}>
-                <span>{charCount} Chars</span>
+                <span>{charCount} chars{seg.encoding === "Unicode" ? " • Unicode" : ""}</span>
                 <span className="text-gray-400">•</span>
-                <span>Cost: <strong className="font-black text-xs">{creditCost}</strong> {creditCost === 1 ? 'Credit' : 'Credits'}</span>
+                <span>Cost: <strong className="font-black text-xs">{creditCost}</strong> {creditCost === 1 ? 'credit' : 'credits'}</span>
               </span>
             </div>
             
             <textarea 
-              placeholder="Type your message copy..." 
+              placeholder="Type your message..." 
               required 
               rows="3" 
               value={scheduleData.message}
@@ -135,7 +125,7 @@ export default function ScheduleSms({ userId, setStatus }) {
             className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.99] text-white p-3.5 rounded-xl font-bold text-xs tracking-wide transition-all shadow-md shadow-indigo-600/10 hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-2"
           >
             <span>{loading ? "⚡" : "📅"}</span>
-            <span>{loading ? "Queueing Task..." : `Book Pipeline Task (${creditCost} Cr.)`}</span>
+            <span>{loading ? "Scheduling..." : `Schedule SMS (${creditCost} credits)`}</span>
           </button>
         </form>
       </div>
@@ -144,26 +134,26 @@ export default function ScheduleSms({ userId, setStatus }) {
         <div className="mb-5">
           <h3 className="text-base font-extrabold text-gray-800 tracking-tight flex items-center space-x-2">
             <span>📊</span>
-            <span>Pending Queues Ledger</span>
+            <span>Scheduled messages</span>
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">Live index log tracking scheduled future deployment operations.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Upcoming and past scheduled messages.</p>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <th className="p-3.5">Trigger Target Time</th>
-                <th className="p-3.5">Destination</th>
-                <th className="p-3.5">Message Copy</th>
-                <th className="p-3.5">Pipeline Status</th>
+                <th className="p-3.5">Send at</th>
+                <th className="p-3.5">To</th>
+                <th className="p-3.5">Message</th>
+                <th className="p-3.5">Status</th>
               </tr>
             </thead>
             <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
               {queue.length === 0 ? (
                 <tr>
                   <td colSpan="4" className="p-8 text-center text-gray-400 font-medium font-sans">
-                    No active timed campaigns registered inside calendar schemas.
+                    No scheduled messages yet.
                   </td>
                 </tr>
               ) : (

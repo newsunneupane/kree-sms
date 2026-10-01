@@ -1,37 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# KreeSMS — single Next.js app (frontend + API)
 
-## Getting Started
+One `npm run dev` / one Vercel project, no CORS, no `NEXT_PUBLIC_API_URL`.
 
-First, run the development server:
+## Quick start (local)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd kreesms
+cp .env.example .env.local   # then fill in DB + JWT + Aakash values
+npm install
+npm run migrate              # create/alter Postgres tables
+npm run seed                 # admin@kreesms.com / Admin@123 + system settings
+npm run dev                  # http://localhost:3000
+# optional, second terminal: npm run cron:local   # minute scheduler without Vercel
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Login flow: register → OTP email → login. JWT is set as an `httpOnly` cookie
+(`kreesms_token`); `localStorage["sms_session"]` keeps only the public profile.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Environment (all server-only — never `NEXT_PUBLIC_`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Key | Purpose |
+|---|---|
+| `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASS`, `DB_SSL` | PostgreSQL (set `DB_SSL=true` on hosted DBs) |
+| `JWT_SECRET` (min 32 chars), `JWT_EXPIRES_IN` | auth |
+| `AAKASH_SMS_TOKEN`, `AAKASH_API_URL`, `AAKASH_CREDIT_URL` | SMS gateway — read only in `src/lib/aakash.js` |
+| `SMTP_HOST/PORT/USER/PASS`, `EMAIL_FROM` | OTP mail (unset = console mock log) |
+| `CRON_SECRET` | guards `/api/cron/dispatch-sms` |
+| `CRON_LOCAL_ENABLED=true` | run minute scheduler inside `next dev` (alt: `npm run cron:local`) |
 
-## Learn More
+`npm run env-check` fails the build if secrets are missing or leaked via `NEXT_PUBLIC_`.
 
-To learn more about Next.js, take a look at the following resources:
+## API map (all require the auth cookie except login/register/verify-otp/health/cron)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+GET  /api/health
+POST /api/auth/login | /api/auth/register | /api/auth/verify-otp
+POST /api/auth/logout
+GET  /api/auth/me
+GET  /api/user/profile | /api/user/history | /api/user/purchases
+POST /api/user/send-sms (single|bulk|dynamic, optional scheduled_at) | /api/user/buy-credits
+GET  /api/admin/users | /api/admin/requests | /api/admin/gateway-balance (live from Aakash v4 API, `live:true/false`) | /api/admin/pending-registrations
+POST /api/admin/add-credit | /api/admin/approve-request | /api/admin/approve-user
+GET  /api/phonebook/get-phonebook (?page&limit) | /api/phonebook/get-group-contacts (?group_id)
+POST /api/phonebook/add-contact | /api/phonebook/add-bulk-contacts | /api/phonebook/add-group-with-relations
+GET  /api/schedule/get-scheduled
+POST /api/schedule/schedule-sms
+GET  /api/cron/dispatch-sms   (Bearer CRON_SECRET; Vercel Cron every minute — see vercel.json)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Identity comes from the verified JWT, never from a `user_id`/`admin_id` request
+field (the old Express code trusted those — hardened during the merge).
+
+## Where the old backend went
+
+| Express | Next.js |
+|---|---|
+| `server.js` routes + `routes/*` + `compat/*` (compat dropped — clean `/api` only) | `src/app/api/*/route.js` |
+| `controllers/*` | logic inside each `route.js` |
+| `middleware/auth.js`, `adminAuth.js` | `src/lib/auth.js` (`requireUser`/`requireAdmin`) + `src/proxy.js` presence guard |
+| `middleware/rateLimiter.js` (+ `express-rate-limit`) | `src/lib/rate-limit.js` (per-instance; use Upstash Redis for prod) |
+| `middleware/errorHandler.js`, `validate.js`, `validators/schemas.js` | `src/lib/api.js` + `src/lib/validators.js` (zod) |
+| `utils/helpers.js`, `services/creditCalculator.js` | `src/lib/auth.js` + `src/lib/credits.js` |
+| `services/aakashSmsService.js`, `emailService.js` | `src/lib/aakash.js`, `src/lib/email.js` |
+| `cron/*` (`node-cron` every minute) | `src/lib/scheduled.js` + `/api/cron/dispatch-sms` + `vercel.json` crons; local via `instrumentation.js`/`cron:local` |
+| `config/db.js`, `models/*`, `migrate.js`, `seed.js` | `src/lib/db.js` (singleton, small pool on Vercel), `src/lib/models/*`, `scripts/*.mjs` |
+| `helmet`, `cors` | `next.config.mjs` security headers; same-origin so no CORS |
+
+Fixes vs the old backend: bulk-via-group used a non-existent `contacts.group_id`
+column — now resolved through the `contact_group_relations` join table; dynamic
+CSV messages containing commas are parsed quote-aware.
+
+## Credit counting (matches Aakash)
+
+- Pre-send estimate: proper SMS segmentation in `src/lib/sms-segments.js`
+  (GSM-7 160/153, Unicode incl. Nepali 70/67, extended chars double-counted) —
+  shared by the server pre-check and all UI cost badges.
+- Post-send truth: Aakash's v3 send response carries the exact per-message
+  `credit` charged — `actualSmsCredit()` in `src/lib/aakash.js` deducts that
+  instead of the estimate, and rejected numbers cost 0. Scheduled jobs reserve
+  the estimate up front, then refund the difference after dispatch.
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Set root directory to `kreesms` (or move its contents to repo root), add all env
+vars above in the dashboard, and give the Cron job an `Authorization:
+Bearer <CRON_SECRET>` header for `/api/cron/dispatch-sms`. Point `DB_*` at a
+hosted Postgres (Supabase/Neon, `DB_SSL=true`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# kree-sms
+Future MongoDB move: all routes go through
+`src/lib/models/index.js`, so only that seam + `src/lib/db.js` need swapping.
+
+## Notes
+
+- `npm run lint` reports pre-existing `setState`-in-`useEffect` / render-component
+  warnings from the original UI code (Next 16 strict rules); they don't block `build`.
+- `next build` may warn about workspace root (stray lockfile at `C:\Users\newsu`);
+  harmless.

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { api } from "../../../lib/client-api";
 
 export default function SmsHistory({ userId }) {
   const [historyTab, setHistoryTab] = useState("sms"); 
@@ -10,22 +10,16 @@ export default function SmsHistory({ userId }) {
   const fetchHistoryData = async (type) => {
     setLoading(true);
     try {
-      let url = "";
-      if (type === "sms") {
-        url = `${baseUrl}/sms-backend/user.php?action=get_history&user_id=${userId}`;
-      } else {
-        url = `${baseUrl}/sms-backend/user.php?action=get_purchases&user_id=${userId}`;
-      }
+      const url = type === "sms" ? "/api/user/history" : "/api/user/purchases";
 
-      const res = await fetch(url);
-      const data = await res.json();
+      const data = await api(url);
       if (data.success) {
         setLogs(data.data || []);
       } else {
         setLogs([]);
       }
     } catch (err) {
-      console.error(`Failed to fetch ${type} tracking logs:`, err);
+      console.error(`Could not load ${type === "sms" ? "message" : "credit"} history:`, err);
       setLogs([]);
     } finally {
       setLoading(false);
@@ -65,8 +59,8 @@ export default function SmsHistory({ userId }) {
       
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-gray-200 pb-5 pl-1">
         <div>
-          <h3 className="text-xl font-bold text-gray-800 tracking-tight">Account Operational Ledger</h3>
-          <p className="text-xs text-gray-500 mt-1">Audit live outbound messaging history streams and offline load requests records.</p>
+          <h3 className="text-xl font-bold text-gray-800 tracking-tight">History</h3>
+          <p className="text-xs text-gray-500 mt-1">Your sent messages and credit requests.</p>
         </div>
 
         <div className="flex bg-gray-200/50 p-1.5 rounded-xl items-center self-start w-full sm:w-fit border border-gray-300/30">
@@ -80,7 +74,7 @@ export default function SmsHistory({ userId }) {
             }`}
           >
             <span className="text-sm">💬</span>
-            <span>SMS History</span>
+            <span>Messages</span>
           </button>
           <button
             type="button"
@@ -92,14 +86,14 @@ export default function SmsHistory({ userId }) {
             }`}
           >
             <span className="text-sm">💳</span>
-            <span>Purchase Orders</span>
+            <span>Credit requests</span>
           </button>
         </div>
       </div>
 
       <div className="flex justify-between items-center text-xs text-gray-500 font-medium bg-gray-50 p-3.5 rounded-xl border border-gray-200">
         <span>
-          Showing: <strong className="text-gray-800 font-bold tracking-wide">{historyTab === "sms" ? "Outbound Messages Sent Log" : "Payment Deposits Requests Log"}</strong>
+          Showing: <strong className="text-gray-800 font-bold tracking-wide">{historyTab === "sms" ? "Sent messages" : "Credit requests"}</strong>
         </span>
         <button
           onClick={() => fetchHistoryData(historyTab)}
@@ -110,7 +104,7 @@ export default function SmsHistory({ userId }) {
           <svg className={`w-3.5 h-3.5 ${loading ? "animate-spin text-violet-400" : "text-gray-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 15H19" />
           </svg>
-          <span>{loading ? "Syncing..." : "Refresh Index"}</span>
+          <span>{loading ? "Syncing..." : "Refresh"}</span>
         </button>
       </div>
 
@@ -121,18 +115,18 @@ export default function SmsHistory({ userId }) {
             <>
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="p-4">Timestamp</th>
-                  <th className="p-4">Channel Type</th>
-                  <th className="p-4">Recipient Node</th>
-                  <th className="p-4">Message Body Content</th>
-                  <th className="p-4">Transit Status</th>
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Type</th>
+                  <th className="p-4">To</th>
+                  <th className="p-4">Message</th>
+                  <th className="p-4">Status</th>
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
                 {logs.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="p-8 text-center text-gray-400 font-medium tracking-wide">
-                      No active text transmissions recorded inside your profile data stack.
+                      No messages sent yet.
                     </td>
                   </tr>
                 ) : (
@@ -162,18 +156,18 @@ export default function SmsHistory({ userId }) {
             <>
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="p-4">Timestamp</th>
-                  <th className="p-4">Order Token ID</th>
-                  <th className="p-4">Requested Allocation</th>
-                  <th className="p-4">Payment Reference / Remarks</th>
-                  <th className="p-4">Approval Status</th>
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Order</th>
+                  <th className="p-4">Credits</th>
+                  <th className="p-4">Reference</th>
+                  <th className="p-4">Status</th>
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
                 {logs.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="p-8 text-center text-gray-400 font-medium tracking-wide">
-                      No balance acquisition manifests recorded under this account wallet.
+                      No credit requests yet.
                     </td>
                   </tr>
                 ) : (
