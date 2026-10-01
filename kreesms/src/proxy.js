@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // middleware runs on the edge runtime and cannot import node-only modules).
 const TOKEN_COOKIE = "kreesms_token";
 
-const PUBLIC_API_PREFIXES = ["/api/auth/", "/api/health", "/api/cron/"];
+const PUBLIC_API_PREFIXES = ["/api/auth/", "/api/health", "/api/cron/", "/api/debug-pg"];
 
 // Edge-safe guard: requires a token to be PRESENT on protected /api routes.
 // Full JWT verification + DB lookup happens in each route (Node runtime).
