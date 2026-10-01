@@ -15,7 +15,16 @@ const nextConfig = {
     "nodemailer",
     "node-cron",
   ],
-  // Helmet replacement: secure defaults for all responses.
+  // Force the Vercel file-tracer to pack the DB driver into API lambdas.
+  // (Turbopack/webpack traces have dropped it, causing
+  // "Please install pg package manually" at runtime.)
+  outputFileTracingIncludes: {
+    "/api/**/*": [
+      "./node_modules/sequelize/**/*",
+      "./node_modules/pg/**/*",
+      "./node_modules/pg-hstore/**/*",
+    ],
+  },
   async headers() {
     return [
       {
