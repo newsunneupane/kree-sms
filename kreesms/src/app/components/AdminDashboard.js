@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "./ThemeContext";
 import { api } from "../../lib/client-api";
+import ApiDashboard from "./admin/ApiDashboard";
 
 export default function AdminDashboard({ admin, logout }) {
+  const [tab, setTab] = useState("overview");
   const [requests, setRequests] = useState([]);
   const [users, setUsers] = useState([]);
   
@@ -137,6 +139,28 @@ export default function AdminDashboard({ admin, logout }) {
             </button>
           </div>
         </header>
+
+        <div className="flex gap-2 bg-white p-1.5 rounded-2xl border border-gray-200 w-fit">
+          <button
+            type="button"
+            onClick={() => setTab("overview")}
+            className={`text-xs font-black tracking-wide py-2.5 px-5 rounded-xl transition-all ${tab === "overview" ? "bg-gray-900 text-white shadow-md" : "text-gray-500 hover:bg-gray-100"}`}
+          >
+            📊 Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("api")}
+            className={`text-xs font-black tracking-wide py-2.5 px-5 rounded-xl transition-all ${tab === "api" ? "bg-gray-900 text-white shadow-md" : "text-gray-500 hover:bg-gray-100"}`}
+          >
+            🔌 API Gateway
+          </button>
+        </div>
+
+        {tab === "api" ? (
+          <ApiDashboard />
+        ) : (
+        <>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
@@ -327,6 +351,9 @@ export default function AdminDashboard({ admin, logout }) {
             </table>
           </div>
         </div>
+
+        </>
+        )}
 
       </div>
     </div>
