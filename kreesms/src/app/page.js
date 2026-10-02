@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import UserDashboard from "./components/UserDashboard";
 import AdminDashboard from "./components/AdminDashboard";
+import ApiClientDashboard from "./components/api-client/ApiClientDashboard";
 import { api, getStoredSession, setStoredSession, clearStoredSession } from "../lib/client-api";
 
 export default function Home() {
@@ -135,6 +136,7 @@ export default function Home() {
 
   if (user && user.role === "user") return <UserDashboard user={user} logout={handleLogout} />;
   if (user && user.role === "admin") return <AdminDashboard admin={user} logout={handleLogout} />;
+  if (user && user.role === "api_client") return <ApiClientDashboard user={user} logout={handleLogout} />;
 
   return (
     <main className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden civilian-theme">

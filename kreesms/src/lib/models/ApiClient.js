@@ -29,6 +29,9 @@ const ApiClient = sequelize.define(
     rate_limit_per_min: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 60, validate: { min: 1, max: 1000 } },
     sms_balance: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, validate: { min: 0 } },
     is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    // Panel login identity for the API holder (auto-created User with role
+    // "api_client" at issuance). Revoking the client deactivates both doors.
+    user_id: { type: DataTypes.INTEGER, allowNull: true, unique: true },
   },
   { tableName: "api_clients", timestamps: true, createdAt: "created_at", updatedAt: "updated_at" }
 );

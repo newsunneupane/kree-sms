@@ -26,10 +26,16 @@ CreditRequest.belongsTo(User, { foreignKey: "user_id" });
 User.hasMany(ScheduledSms, { foreignKey: "user_id" });
 ScheduledSms.belongsTo(User, { foreignKey: "user_id" });
 
-// Platform-level public gateway identity — intentionally NOT linked to User.
-// Third-party products (school/restaurant/accounting) are tenants of their own.
+// Public gateway identity. Each client owns exactly one panel-login User
+// (role "api_client", generated email, created at issuance) — third-party
+// products are tenants of their own, separate from dashboard Users.
 ApiClient.hasMany(PublicSmsLog, { foreignKey: "api_client_id" });
 PublicSmsLog.belongsTo(ApiClient, { foreignKey: "api_client_id" });
+
+// API holder panel login: each client owns exactly one login User
+// (role "api_client", generated email). Created automatically at issuance.
+User.hasOne(ApiClient, { foreignKey: "user_id" });
+ApiClient.belongsTo(User, { foreignKey: "user_id" });
 
 Contact.belongsToMany(Group, {
   through: ContactGroupRelation,

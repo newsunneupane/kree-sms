@@ -81,6 +81,40 @@ export async function requireAdmin(req) {
   return session;
 }
 
+// API holder panel guard: session must belong to a User with role
+// "api_client" whose linked ApiClient exists and is active. Revoking the
+// client instantly locks the panel too — no separate switch needed.
+export async function requireApiClient(req) {
+  const session = await getSession(req);
+  if (!session) {
+    return {
+      error: NextResponse.json(
+        { success: false, message: "Access denied. Please login again." },
+        { status: 401 }
+      ),
+    };
+  }
+  if (session.user.role !== "api_client") {
+    return {
+      error: NextResponse.json(
+        { success: false, message: "Access denied. API clients only." },
+        { status: 403 }
+      ),
+    };
+  }
+  const { ApiClient } = await import("./models/index.js");
+  const apiClient = await ApiClient.findOne({ where: { user_id: session.user.id } });
+  if (!apiClient || !apiClient.is_active) {
+    return {
+      error: NextResponse.json(
+        { success: false, message: "API access deactivated. Contact administrator." },
+        { status: 403 }
+      ),
+    };
+  }
+  return { user: session.user, apiClient };
+}
+
 export function authCookieHeader(token) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
   return `${TOKEN_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 3600}; SameSite=Lax${secure}`;

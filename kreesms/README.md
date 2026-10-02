@@ -27,6 +27,8 @@ Login flow: register → OTP email → login. JWT is set as an `httpOnly` cookie
 | `SMTP_HOST/PORT/USER/PASS`, `EMAIL_FROM` | OTP mail (unset = console mock log) |
 | `CRON_SECRET` | guards `/api/cron/dispatch-sms` |
 | `CRON_LOCAL_ENABLED=true` | run minute scheduler inside `next dev` (alt: `npm run cron:local`) |
+| `SMS_HMAC_PEPPER` | signs/verifies public-gateway API keys — rotating it invalidates all issued keys |
+| `UPSTASH_REDIS_REST_URL/TOKEN` | cross-instance rate limiting for the public gateway (unset = in-memory fallback) |
 
 `npm run env-check` fails the build if secrets are missing or leaked via `NEXT_PUBLIC_`.
 
@@ -46,6 +48,17 @@ POST /api/phonebook/add-contact | /api/phonebook/add-bulk-contacts | /api/phoneb
 GET  /api/schedule/get-scheduled
 POST /api/schedule/schedule-sms
 GET  /api/cron/dispatch-sms   (Bearer CRON_SECRET; Vercel Cron every minute — see vercel.json)
+```
+
+Third-party gateway (HMAC, no session — see [`docs/public-api.md`](docs/public-api.md)
+for the integration guide handed to product teams):
+
+```
+POST /api/public/send-sms   (x-api-key, x-timestamp, x-signature, x-request-id)
+GET  /api/client/profile | /api/client/stats | /api/client/logs   (API holder panel session)
+GET  /api/admin/api-clients | /api/admin/public-logs | /api/admin/public-stats
+POST /api/admin/api-clients (issue: returns key + secret + panel login once)
+POST /api/admin/api-clients/[id]/topup | /api/admin/api-clients/[id]/status
 ```
 
 Identity comes from the verified JWT, never from a `user_id`/`admin_id` request

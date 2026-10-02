@@ -95,7 +95,7 @@ export default function ApiDashboard() {
         },
       });
       if (data.success) {
-        setIssuedSecret({ apiKey: data.apiKey, secret: data.secret, prefix: data.client.key_prefix });
+        setIssuedSecret({ apiKey: data.apiKey, secret: data.secret, prefix: data.client.key_prefix, panelEmail: data.panelEmail, panelPassword: data.panelPassword });
         setIssueForm({ name: "", product: "school", credits: "100", rateLimitPerMin: "60" });
         loadStats();
       } else {
@@ -406,7 +406,7 @@ export default function ApiDashboard() {
               <div>
                 <h3 className="text-base font-extrabold text-gray-800">🔑 Key issued — copy now</h3>
                 <p className="text-xs text-rose-600 font-semibold mt-1">
-                  The secret will never be shown again. Save both values in the product&apos;s server config.
+                  None of these will ever be shown again. API key + secret go in the product&apos;s server config; email + password are its panel login.
                 </p>
                 <div className="mt-4 space-y-3">
                   <div>
@@ -423,13 +423,27 @@ export default function ApiDashboard() {
                       <button type="button" onClick={() => copyText(issuedSecret.secret, "Secret")} className="text-xs font-bold px-3 py-2.5 rounded-lg bg-gray-900 text-white">Copy</button>
                     </div>
                   </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Panel login email</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="flex-1 text-xs font-mono bg-blue-50 border border-blue-200 rounded-lg p-2.5 break-all">{issuedSecret.panelEmail}</code>
+                      <button type="button" onClick={() => copyText(issuedSecret.panelEmail, "Panel email")} className="text-xs font-bold px-3 py-2.5 rounded-lg bg-gray-900 text-white">Copy</button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Panel password</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="flex-1 text-xs font-mono bg-blue-50 border border-blue-200 rounded-lg p-2.5 break-all">{issuedSecret.panelPassword}</code>
+                      <button type="button" onClick={() => copyText(issuedSecret.panelPassword, "Panel password")} className="text-xs font-bold px-3 py-2.5 rounded-lg bg-gray-900 text-white">Copy</button>
+                    </div>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setShowIssue(false); setIssuedSecret(null); }}
                   className="mt-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-2.5 rounded-xl"
                 >
-                  I have saved both — close
+                  I have saved all four — close
                 </button>
               </div>
             ) : (

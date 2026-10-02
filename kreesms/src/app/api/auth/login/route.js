@@ -23,6 +23,15 @@ export async function POST(req) {
     const isMatch = await user.comparePassword(v.data.password);
     if (!isMatch) return fail("Invalid email or password.", 401);
 
+    // Revoked API holders lose panel access together with their HMAC key.
+    if (user.role === "api_client") {
+      const { ApiClient } = await import("@/lib/models/index.js");
+      const linked = await ApiClient.findOne({ where: { user_id: user.id } });
+      if (!linked || !linked.is_active) {
+        return fail("API access deactivated. Contact administrator.", 403);
+      }
+    }
+
     const token = signToken(user);
     const res = ok({ user: sanitizeUser(user), token });
     res.headers.set("Set-Cookie", authCookieHeader(token));
