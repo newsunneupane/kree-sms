@@ -1,7 +1,18 @@
 /** @type {import('next').NextConfig} */
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const nextConfig = {
   /* config options here */
   reactCompiler: true,
+  // Pin Turbopack's workspace root to this project. A stray
+  // C:\Users\newsu\package-lock.json otherwise makes Next infer the
+  // home directory as root (multi-lockfile warning in dev).
+  turbopack: {
+    root: __dirname,
+  },
   // Keep node-native backend deps out of the bundle so Sequelize
   // can require('pg') at runtime (fixes "Please install pg package manually").
   // NOTE: production builds use webpack (`next build --webpack` in package.json)
