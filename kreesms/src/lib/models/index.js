@@ -8,6 +8,8 @@ import SmsLog from "./SmsLog.js";
 import CreditRequest from "./CreditRequest.js";
 import ScheduledSms from "./ScheduledSms.js";
 import SystemSetting from "./SystemSetting.js";
+import ApiClient from "./ApiClient.js";
+import PublicSmsLog from "./PublicSmsLog.js";
 
 User.hasMany(Contact, { foreignKey: "user_id" });
 Contact.belongsTo(User, { foreignKey: "user_id" });
@@ -23,6 +25,11 @@ CreditRequest.belongsTo(User, { foreignKey: "user_id" });
 
 User.hasMany(ScheduledSms, { foreignKey: "user_id" });
 ScheduledSms.belongsTo(User, { foreignKey: "user_id" });
+
+// Platform-level public gateway identity — intentionally NOT linked to User.
+// Third-party products (school/restaurant/accounting) are tenants of their own.
+ApiClient.hasMany(PublicSmsLog, { foreignKey: "api_client_id" });
+PublicSmsLog.belongsTo(ApiClient, { foreignKey: "api_client_id" });
 
 Contact.belongsToMany(Group, {
   through: ContactGroupRelation,
@@ -48,4 +55,6 @@ export {
   CreditRequest,
   ScheduledSms,
   SystemSetting,
+  ApiClient,
+  PublicSmsLog,
 };

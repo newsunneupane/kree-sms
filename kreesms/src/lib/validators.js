@@ -73,6 +73,21 @@ export const addGroupSchema = z.object({
 
 export const addGatewayCreditSchema = z.object({ credits: positiveInt });
 
+// Public third-party gateway DTO (POST /api/public/send-sms). Single-message
+// only — external products fan out themselves; one row per call keeps credit
+// math and idempotency exact.
+export const publicSendSmsSchema = z.object({
+  to: z
+    .string()
+    .trim()
+    .min(10, "Recipient number is required.")
+    .max(20, "Recipient number is too long.")
+    .regex(/^\+?977-?98\d{8}$|^98\d{8}$/, "Invalid Nepal mobile number (expect 98XXXXXXXX)."),
+  message: z.string().trim().min(1, "Message is required.").max(1000, "Message too long (max 1000 chars)."),
+  senderId: z.string().trim().max(11, "Sender ID too long.").optional(),
+  clientRef: z.string().trim().max(64, "clientRef too long.").optional(),
+});
+
 export function validate(schema, data) {
   const parsed = schema.safeParse(data);
   if (!parsed.success) {
