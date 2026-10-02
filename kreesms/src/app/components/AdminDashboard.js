@@ -256,7 +256,7 @@ export default function AdminDashboard({ admin, logout }) {
                           {u.role}
                         </span>
                       </td>
-                      <td className="p-3.5 font-black font-mono text-emerald-600">{u.sms_balance}</td>
+                      <td className="p-3.5 font-black font-mono text-emerald-600">{u.role === "admin" ? <span className="text-gray-300">—</span> : u.sms_balance}</td>
                       <td className="p-3.5 text-gray-500">{new Date(u.created_at).toLocaleString()}</td>
                     </tr>
                   ))
