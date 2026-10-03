@@ -1,0 +1,4 @@
+# Local secret scratch files (API keys, panel logins) — never commit
+newkey.txt
+*key.txt
+.env*
