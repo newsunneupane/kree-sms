@@ -5,7 +5,8 @@ import { NextResponse } from "next/server";
 const TOKEN_COOKIE = "kreesms_token";
 
 // /api/public/* authenticates itself per request (API key + HMAC in
-// src/app/api/public/send-sms/route.js) — it must never require a session.
+// src/app/api/public/send-sms/route.js and src/app/api/public/send-bulk/route.js,
+// shared via src/lib/public-gateway-auth.js) — it must never require a session.
 const PUBLIC_API_PREFIXES = ["/api/auth/", "/api/health", "/api/cron/", "/api/debug-pg", "/api/public/"];
 
 // Edge-safe guard: requires a token to be PRESENT on protected /api routes.

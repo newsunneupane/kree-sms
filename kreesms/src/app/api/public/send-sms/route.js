@@ -1,23 +1,18 @@
-import { ensureDb } from "@/lib/db";
 import { ApiClient, PublicSmsLog, sequelize } from "@/lib/models/index.js";
 import { sendSms, actualSmsCredit, isSmsRejected } from "@/lib/aakash";
 import { calculateCreditCost } from "@/lib/credits";
 import { ok, fail, toErrorResponse } from "@/lib/api";
 import { validate, publicSendSmsSchema } from "@/lib/validators";
 import { sharedRateLimit, publicClientIp } from "@/lib/public-rate-limit";
+import { authenticatePublicGateway } from "@/lib/public-gateway-auth";
 import {
-  decryptSecret,
   hashIp,
   hashPhone,
-  hashWithPepper,
   maskPhone,
-  signPublicRequest,
-  timingSafeHexEqual,
 } from "@/lib/public-auth";
 
 export const runtime = "nodejs";
 
-const TIMESTAMP_SKEW_MS = 5 * 60 * 1000;
 const MAX_BODY_BYTES = 10 * 1024;
 // Vercel Hobby caps functions at ~10s; Aakash's own client waits 15s, so the
 // public route enforces a tighter 8s budget and treats overruns as failures
@@ -86,43 +81,17 @@ export async function POST(req) {
       return ipCheck.response;
     }
 
-    // 3. HMAC auth.
-    const apiKey = req.headers.get("x-api-key")?.trim();
-    const timestamp = req.headers.get("x-timestamp")?.trim();
-    const signature = req.headers.get("x-signature")?.trim().toLowerCase();
-    if (!apiKey || !timestamp || !signature) {
-      await logFailure(401, "Missing x-api-key, x-timestamp, or x-signature.", {
-        keyPrefix: apiKey?.slice(0, 20) ?? null,
+    // 3. HMAC auth (shared helper — same as send-bulk).
+    const authResult = await authenticatePublicGateway(req, rawBody);
+    if (authResult.error) {
+      const e = authResult.error;
+      await logFailure(e.status, e.message, {
+        apiClientId: e.apiClientId ?? null,
+        keyPrefix: e.keyPrefix ?? null,
       });
-      return fail("Missing x-api-key, x-timestamp, or x-signature.", 401);
+      return fail(e.message, e.status);
     }
-    const requestTime = Date.parse(timestamp);
-    if (Number.isNaN(requestTime) || Math.abs(Date.now() - requestTime) > TIMESTAMP_SKEW_MS) {
-      await logFailure(401, "Stale request timestamp.", { keyPrefix: apiKey.slice(0, 20) });
-      return fail("Stale request timestamp (max 5 min skew).", 401);
-    }
-
-    await ensureDb();
-    const client = await ApiClient.findOne({ where: { key_hash: hashWithPepper(apiKey) } });
-    if (!client || !client.is_active) {
-      await logFailure(401, "Invalid API key.", { keyPrefix: apiKey.slice(0, 20) });
-      return fail("Invalid API key.", 401);
-    }
-    if (client.allowed_ips.length > 0 && clientIp !== "unknown" && !client.allowed_ips.includes(clientIp)) {
-      await logFailure(403, "IP not allowlisted.", { apiClientId: client.id, keyPrefix: client.key_prefix });
-      return fail("IP not allowlisted for this key.", 403);
-    }
-    let secret;
-    try {
-      secret = decryptSecret(client.secret_enc);
-    } catch {
-      return fail("Server key misconfiguration.", 500);
-    }
-    if (!timingSafeHexEqual(signPublicRequest(secret, timestamp, rawBody), signature)) {
-      await logFailure(401, "Invalid signature.", { apiClientId: client.id, keyPrefix: client.key_prefix });
-      return fail("Invalid signature.", 401);
-    }
-    const auth = { apiClientId: client.id, keyPrefix: client.key_prefix };
+    const { client, auth } = authResult;
 
     // 4. Per-key rate limit (post-auth).
     const keyCheck = await sharedRateLimit(req, `key:${client.id}`, client.rate_limit_per_min);

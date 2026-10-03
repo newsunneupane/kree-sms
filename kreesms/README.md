@@ -55,6 +55,7 @@ for the integration guide handed to product teams):
 
 ```
 POST /api/public/send-sms   (x-api-key, x-timestamp, x-signature, x-request-id)
+POST /api/public/send-bulk  (same message to 2–100, all-or-nothing, same HMAC headers, x-request-id = batch ID)
 GET  /api/client/profile | /api/client/stats | /api/client/logs   (API holder panel session)
 GET  /api/admin/api-clients | /api/admin/public-logs | /api/admin/public-stats
 POST /api/admin/api-clients (issue: returns key + secret + panel login once)

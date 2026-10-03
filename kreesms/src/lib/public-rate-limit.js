@@ -17,11 +17,12 @@ async function getRedis() {
   return redis;
 }
 
-function memoryFallback(req, limit, windowSec) {
+function memoryFallback(req, limit, windowSec, cost = 1) {
   const r = memoryRateLimit(req, {
     windowMs: windowSec * 1000,
     max: limit,
     message: "Too many requests. Please try again later.",
+    cost,
   });
   if (r.limited) {
     const retryAfter = r.response.headers.get("Retry-After") || String(windowSec);
@@ -30,13 +31,14 @@ function memoryFallback(req, limit, windowSec) {
   return { allowed: true, retryAfter: 0 };
 }
 
-export async function sharedRateLimit(req, bucket, limit, windowSec = 60) {
+export async function sharedRateLimit(req, bucket, limit, windowSec = 60, cost = 1) {
+  const units = Math.max(1, Math.floor(cost) || 1);
   try {
     const client = await getRedis();
-    if (!client) return memoryFallback(req, limit, windowSec);
+    if (!client) return memoryFallback(req, limit, windowSec, units);
     const key = `kreesms:public:${bucket}`;
-    const count = await client.incr(key);
-    if (count === 1) await client.expire(key, windowSec);
+    const count = await client.incrby(key, units);
+    if (count === units) await client.expire(key, windowSec);
     if (count > limit) {
       const ttl = await client.ttl(key);
       const retryAfter = ttl > 0 ? ttl : windowSec;
@@ -53,7 +55,7 @@ export async function sharedRateLimit(req, bucket, limit, windowSec = 60) {
   } catch {
     // Redis outage must not take down SMS sending — fail open, in-memory
     // per-instance buckets still absorb single-instance bursts.
-    return memoryFallback(req, limit, windowSec);
+    return memoryFallback(req, limit, windowSec, units);
   }
 }
 

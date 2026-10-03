@@ -5,7 +5,9 @@ system, …) through your KreeSMS balance. One endpoint, key-based auth, no
 browser or login session required.
 
 Base URL (production): `https://kreesms.kree.com.np`
-Endpoint: `POST /api/public/send-sms`
+Endpoints:
+- Single: `POST /api/public/send-sms`
+- Bulk (same message to many): `POST /api/public/send-bulk`
 
 ## 1. Get your credentials (from the KreeSMS admin)
 
@@ -113,6 +115,33 @@ echo curl_exec($ch);
 | `senderId` | no | Max 11 chars (telco-approved IDs only) |
 | `clientRef` | no | Your own reference (max 64 chars), echoed nowhere but stored |
 
+## 3b. Bulk request body (`POST /api/public/send-bulk`)
+
+Same message to 2–100 recipients, all-or-nothing:
+
+```json
+{
+  "to": ["9841234567", "9851234567"],
+  "message": "School fee due tomorrow.",
+  "senderId": "<KREE>",
+  "clientRef": "batch-fee-may"
+}
+```
+
+Rules: `to` array order matters for signing (sign the exact bytes you send);
+duplicates rejected; balance must cover `segments × recipients` or the whole
+batch fails with `402` and zero sends. `x-request-id` is the **batch ID** —
+retries replay with `"deduped": true`. Rate limit counts the whole batch.
+Success (`200`):
+
+```json
+{ "success": true, "total": 2, "segmentsPerMessage": 1, "creditsUsed": 2, "balanceRemaining": 498 }
+```
+
+Provider sends can't be unsent: if some numbers fail mid-batch, sent ones stay
+sent, failed ones are refunded and the call returns `502` with
+`{ total, sent, failed, creditsUsed, balanceRemaining }`.
+
 ## 4. Responses
 
 Success (`200`):
@@ -131,19 +160,20 @@ Errors (all also recorded in your audit log):
 | `403` | Key revoked or IP not allowlisted | Contact the admin |
 | `429` | Rate limit hit | Back off for `Retry-After` seconds, then retry |
 | `502` | Provider failed | **Credits were refunded.** Retry with the same `x-request-id` |
-| `413` | Body over 10 KB | Shrink the message |
+| `413` | Body over 10 KB (single) / 20 KB (bulk) | Shrink the message / split the batch |
 
 ## 5. Reliability rules (read these)
 
-1. **Always send `x-request-id`** (unique per message, e.g. UUID). Retries with the
+1. **Always send `x-request-id`** (unique per message, per batch for bulk, e.g. UUID). Retries with the
    same ID never double-charge — the stored result is replayed with
    `"deduped": true`.
 2. **Retry only on network errors, `429`, and `502`** — with exponential backoff.
    Never blind-retry `402` (you'll just burn quota checks) or `400` (fix the data).
 3. **Sync clocks via NTP.** Timestamps older than 5 minutes are rejected to stop
    replay attacks.
-4. **One message per call.** Fan out bulk sends client-side, sequentially or with
-   small concurrency (≤5), respecting `429` responses.
+4. **Single: one message per call.** For ≤100 same-message recipients prefer
+   `POST /api/public/send-bulk`; larger lists: split into ≤100 batches,
+   sequentially or with small concurrency (≤5), respecting `429` responses.
 
 ## 6. Your panel dashboard
 

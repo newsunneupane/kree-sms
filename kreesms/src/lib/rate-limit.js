@@ -4,14 +4,17 @@
 
 const buckets = new Map();
 
-function hit(key, windowMs, max) {
+function hit(key, windowMs, max, cost = 1) {
   const now = Date.now();
   const entry = buckets.get(key);
   if (!entry || now - entry.start > windowMs) {
-    buckets.set(key, { start: now, count: 1 });
+    buckets.set(key, { start: now, count: cost });
+    if (cost > max) {
+      return { allowed: false, retryAfter: Math.ceil(windowMs / 1000) };
+    }
     return { allowed: true };
   }
-  entry.count += 1;
+  entry.count += cost;
   if (entry.count > max) {
     const retryAfter = Math.ceil((entry.start + windowMs - now) / 1000);
     return { allowed: false, retryAfter };
@@ -37,9 +40,9 @@ function clientKey(req) {
   );
 }
 
-export function rateLimit(req, { windowMs, max, message }) {
+export function rateLimit(req, { windowMs, max, message, cost = 1 }) {
   const key = `${req.nextUrl?.pathname || req.url}:${clientKey(req)}`;
-  const r = hit(key, windowMs, max);
+  const r = hit(key, windowMs, max, cost);
   if (!r.allowed) {
     return {
       limited: true,

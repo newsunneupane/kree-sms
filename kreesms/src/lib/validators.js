@@ -88,6 +88,32 @@ export const publicSendSmsSchema = z.object({
   clientRef: z.string().trim().max(64, "clientRef too long.").optional(),
 });
 
+const nepalMobile = z
+  .string()
+  .trim()
+  .min(10, "Recipient number is required.")
+  .max(20, "Recipient number is too long.")
+  .regex(/^\+?977-?98\d{8}$|^98\d{8}$/, "Invalid Nepal mobile number (expect 98XXXXXXXX).");
+
+// Public bulk gateway DTO (POST /api/public/send-bulk). Same message to many
+// recipients (2-100), all-or-nothing: any invalid number or short balance
+// fails the whole batch with zero sends.
+export const publicSendBulkSchema = z
+  .object({
+    to: z.array(nepalMobile).min(2, "Provide at least 2 recipients.").max(100, "Max 100 recipients per bulk call."),
+    message: z.string().trim().min(1, "Message is required.").max(1000, "Message too long (max 1000 chars)."),
+    senderId: z.string().trim().max(11, "Sender ID too long.").optional(),
+    clientRef: z.string().trim().max(64, "clientRef too long.").optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (Array.isArray(v.to)) {
+      const seen = new Set(v.to.map((n) => String(n).replace(/\D/g, "").slice(-10)));
+      if (seen.size !== v.to.length) {
+        ctx.addIssue({ code: "custom", message: "Duplicate recipient numbers.", path: ["to"] });
+      }
+    }
+  });
+
 export function validate(schema, data) {
   const parsed = schema.safeParse(data);
   if (!parsed.success) {

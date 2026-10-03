@@ -71,6 +71,18 @@ export default function ApiClientDashboard({ user, logout }) {
       ].join("\n")
     : "";
 
+  const curlExampleBulk = profile
+    ? [
+        `BODY='{"to":["9841234567","9851234567"],"message":"Hello from ${profile.name}"}'`,
+        `TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)`,
+        `# SIG=$(node -e "console.log(require('crypto').createHmac('sha256',SECRET).update(TS+'.'+BODY).digest('hex'))")`,
+        `curl -X POST ${typeof window !== "undefined" ? window.location.origin : ""}/api/public/send-bulk \\`,
+        `  -H 'Content-Type: application/json' \\`,
+        `  -H "x-api-key: YOUR_API_KEY" -H "x-timestamp: $TS" -H "x-signature: $SIG" \\`,
+        `  -H 'x-request-id: unique-per-batch' -d "$BODY"`,
+      ].join("\n")
+    : "";
+
   const totalPages = Math.max(1, Math.ceil((pagination.total || 0) / (pagination.limit || 30)));
 
   return (
@@ -133,11 +145,12 @@ export default function ApiClientDashboard({ user, logout }) {
             <span>🔌</span><span>Connect your software</span>
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Send <code className="font-mono bg-gray-100 px-1 rounded">POST /api/public/send-sms</code> with these headers.
+            Send <code className="font-mono bg-gray-100 px-1 rounded">POST /api/public/send-sms</code> (single) or <code className="font-mono bg-gray-100 px-1 rounded">POST /api/public/send-bulk</code> (same message to 2–100 numbers) with these headers.
             Sign the <em>exact JSON bytes</em> you send: <code className="font-mono bg-gray-100 px-1 rounded">HMAC_SHA256(secret, timestamp + &quot;.&quot; + body)</code>.
             Keep your secret on your server — never in frontend code.
           </p>
           <pre className="mt-3 text-[11px] font-mono bg-gray-900 text-gray-100 rounded-xl p-4 overflow-x-auto whitespace-pre">{curlExample}</pre>
+          <pre className="mt-3 text-[11px] font-mono bg-gray-900 text-gray-100 rounded-xl p-4 overflow-x-auto whitespace-pre">{curlExampleBulk}</pre>
           <p className="text-[11px] text-gray-500 mt-2">
             Responses: <b>200</b> sent · <b>400</b> bad data · <b>401</b> bad key/signature · <b>402</b> out of credits (contact admin) · <b>429</b> too fast (respect Retry-After) · <b>502</b> provider failed, credits refunded.
             Reuse <code className="font-mono bg-gray-100 px-1 rounded">x-request-id</code> safely — retries never double-charge.
