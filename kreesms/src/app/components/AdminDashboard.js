@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useTheme } from "./ThemeContext";
 import { api } from "../../lib/client-api";
 import ApiDashboard from "./admin/ApiDashboard";
 
@@ -17,7 +16,6 @@ export default function AdminDashboard({ admin, logout }) {
   
   const [topUpAmount, setTopUpAmount] = useState("");
   const [isSubmittingTopUp, setIsSubmittingTopUp] = useState(false);
-  const { isDark, toggleTheme } = useTheme();
 
   const fetchBalances = async () => {
     if (!admin?.id) return;
@@ -124,13 +122,6 @@ export default function AdminDashboard({ admin, logout }) {
           </div>
           <div className="flex items-center gap-2">
             <button 
-              type="button"
-              onClick={toggleTheme}
-              className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-black tracking-wide py-2.5 px-4 rounded-xl transition-all shadow-md self-stretch sm:self-auto"
-            >
-              {isDark ? "☀️ Light" : "🌙 Dark"}
-            </button>
-            <button 
               onClick={logout} 
               type="button"
               className="bg-red-500 hover:bg-red-600 active:scale-[0.98] text-white text-xs font-black tracking-wide py-2.5 px-4 rounded-xl transition-all shadow-md shadow-red-500/10 self-stretch sm:self-auto text-center"
@@ -158,7 +149,7 @@ export default function AdminDashboard({ admin, logout }) {
         </div>
 
         {tab === "api" ? (
-          <ApiDashboard />
+          <ApiDashboard onPoolChange={fetchBalances} />
         ) : (
         <>
 

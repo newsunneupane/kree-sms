@@ -18,7 +18,6 @@ export const runtime = "nodejs";
 const issueSchema = z.object({
   name: z.string().trim().min(2, "Name is required.").max(120),
   product: z.enum(["school", "restaurant", "accounting", "other"]).optional().default("school"),
-  credits: z.coerce.number().int().min(0).max(10000000).optional().default(0),
   rateLimitPerMin: z.coerce.number().int().min(1).max(1000).optional().default(60),
   allowedIps: z.array(z.string().trim().max(45)).max(50).optional().default([]),
 });
@@ -77,7 +76,7 @@ export async function POST(req) {
           key_prefix: keyPrefixOf(apiKey),
           key_hash: hashWithPepper(apiKey),
           secret_enc: encryptSecret(secret),
-          sms_balance: v.data.credits,
+          sms_balance: 0,
           rate_limit_per_min: v.data.rateLimitPerMin,
           allowed_ips: v.data.allowedIps,
           user_id: holder.id,

@@ -25,7 +25,7 @@ function statusChip(code) {
   return "bg-rose-50 text-rose-700 border border-rose-200";
 }
 
-export default function ApiDashboard() {
+export default function ApiDashboard({ onPoolChange }) {
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 30, total: 0 });
@@ -34,7 +34,7 @@ export default function ApiDashboard() {
   const [loading, setLoading] = useState(false);
 
   const [showIssue, setShowIssue] = useState(false);
-  const [issueForm, setIssueForm] = useState({ name: "", product: "school", credits: "0", rateLimitPerMin: "60" });
+  const [issueForm, setIssueForm] = useState({ name: "", product: "school", rateLimitPerMin: "60" });
   const [issuing, setIssuing] = useState(false);
   const [issuedSecret, setIssuedSecret] = useState(null);
 
@@ -90,13 +90,12 @@ export default function ApiDashboard() {
         body: {
           name: issueForm.name,
           product: issueForm.product,
-          credits: parseInt(issueForm.credits || "0", 10),
           rateLimitPerMin: parseInt(issueForm.rateLimitPerMin || "60", 10),
         },
       });
       if (data.success) {
         setIssuedSecret({ apiKey: data.apiKey, secret: data.secret, prefix: data.client.key_prefix, panelEmail: data.panelEmail, panelPassword: data.panelPassword });
-        setIssueForm({ name: "", product: "school", credits: "0", rateLimitPerMin: "60" });
+        setIssueForm({ name: "", product: "school", rateLimitPerMin: "60" });
         loadStats();
       } else {
         setMsg(data.message || "Could not issue key.");
@@ -118,6 +117,7 @@ export default function ApiDashboard() {
       if (data.success) {
         setTopUp((t) => ({ ...t, [id]: "" }));
         loadStats();
+        onPoolChange?.();
       }
     } catch {
       setMsg("Top-up failed. Please try again.");
@@ -480,14 +480,6 @@ export default function ApiDashboard() {
                       className="text-sm font-mono p-2.5 rounded-xl border border-gray-300"
                     />
                   </div>
-                  <input
-                    type="number"
-                    value={issueForm.credits}
-                    onChange={(e) => setIssueForm((f) => ({ ...f, credits: e.target.value }))}
-                    placeholder="Starting credits"
-                    min="0"
-                    className="w-full text-sm font-mono p-2.5 rounded-xl border border-gray-300"
-                  />
                 </div>
                 <div className="mt-5 flex gap-2">
                   <button

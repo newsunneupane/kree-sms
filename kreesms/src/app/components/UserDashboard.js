@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { useTheme } from "./ThemeContext";
 
 import SingleSms from "./user/SingleSms";
 import BulkSms from "./user/BulkSms";
@@ -17,7 +16,6 @@ export default function UserDashboard({ user, logout }) {
   const [balance, setBalance] = useState(user.sms_balance);
   const [status, setStatus] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isDark, toggleTheme } = useTheme();
 
   const syncBalance = async () => {
     try {
@@ -161,21 +159,11 @@ export default function UserDashboard({ user, logout }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-xl flex items-center space-x-2 shadow-sm shadow-emerald-950/20">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-              <span className="text-xs text-emerald-600 font-semibold tracking-wide">
-                Balance: <span className="text-sm font-black text-emerald-700">{balance}</span> credits
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-gray-200/80 hover:bg-gray-300 transition-all border border-gray-200 text-sm active:scale-95"
-              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              {isDark ? "☀️" : "🌙"}
-            </button>
+          <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-xl flex items-center space-x-2 shadow-sm shadow-emerald-950/20">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span className="text-xs text-emerald-600 font-semibold tracking-wide">
+              Balance: <span className="text-sm font-black text-emerald-700">{balance}</span> credits
+            </span>
           </div>
         </header>
 
