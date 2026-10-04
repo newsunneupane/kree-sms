@@ -9,10 +9,14 @@ import CreditTransfer from "./user/CreditTransfer";
 import SmsHistory from "./user/SmsHistory";
 import ScheduleSms from "./user/ScheduleSms";
 import Phonebook from "./user/Phonebook";
+import { Notice } from "./ui/ui";
+import {
+  IconChat, IconBulk, IconZap, IconClock, IconBook, IconCard, IconHistory, IconLogout, IconMenu, IconX,
+} from "./ui/Icons";
 import { api } from "../../lib/client-api";
 
 export default function UserDashboard({ user, logout }) {
-  const [activeTab, setActiveTab] = useState("single"); 
+  const [activeTab, setActiveTab] = useState("single");
   const [balance, setBalance] = useState(user.sms_balance);
   const [status, setStatus] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -56,63 +60,67 @@ export default function UserDashboard({ user, logout }) {
   };
 
   const navItems = [
-    { id: "single", label: "Single SMS", icon: "💬" },
-    { id: "bulk", label: "Bulk SMS", icon: "📁" },
-    { id: "dynamic", label: "Dynamic SMS", icon: "⚡" },
-    { id: "schedule", label: "Scheduled", icon: "⏰" },
-    { id: "phonebook", label: "Phonebook", icon: "👥" }, 
-    { id: "credit", label: "Buy Credits", icon: "💳" },
-    { id: "history", label: "History", icon: "📊" },
+    { id: "single", label: "Single SMS", Icon: IconChat },
+    { id: "bulk", label: "Bulk SMS", Icon: IconBulk },
+    { id: "dynamic", label: "Dynamic SMS", Icon: IconZap },
+    { id: "schedule", label: "Scheduled", Icon: IconClock },
+    { id: "phonebook", label: "Phonebook", Icon: IconBook },
+    { id: "credit", label: "Buy Credits", Icon: IconCard },
+    { id: "history", label: "History", Icon: IconHistory },
   ];
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full justify-between bg-gray-100">
-      <div>
-        <div className="p-6 border-b border-gray-200 flex flex-col gap-1">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/20">
-              कृ
-            </div>
-            <h2 className="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400 font-mono">
-              KREESMS
-            </h2>
+  const activeLabel = navItems.find((n) => n.id === activeTab)?.label || "";
+
+  const renderSidebar = (onNavigate) => (
+    <div className="flex flex-col h-full">
+      <div className="px-6 pt-7 pb-6 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold text-base shadow-lg shadow-violet-600/30">
+            कृ
           </div>
-          <span className="text-[10px] tracking-widest text-gray-500 font-bold uppercase mt-1">
-            SMS Gateway
-          </span>
+          <div>
+            <p className="text-[15px] font-bold tracking-widest text-white font-mono leading-none">KREESMS</p>
+            <p className="text-[10px] tracking-[0.18em] text-slate-400 font-semibold uppercase mt-1">SMS Gateway</p>
+          </div>
         </div>
-        <nav className="p-4 space-y-1">
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => { 
-                  setActiveTab(item.id); 
-                  setStatus(""); 
-                  setMobileMenuOpen(false); 
-                }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 ${
-                  isActive 
-                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/15" 
-                    : "text-gray-500 hover:bg-gray-200 hover:text-gray-800"
-                }`}
-              >
-                <span className="text-base filter drop-shadow">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
       </div>
-      <div className="p-4 border-t border-gray-200 space-y-2">
-        <button 
-          onClick={logout} 
-          type="button" 
-          className="w-full flex items-center justify-center space-x-2 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-150 border border-rose-500/10 hover:border-transparent text-sm active:scale-[0.98]"
+      <nav className="flex-1 overflow-y-auto nice-scroll p-4 space-y-1">
+        <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">Messaging</p>
+        {navItems.map((item) => {
+          const isActive = activeTab === item.id;
+          const ItemIcon = item.Icon;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setActiveTab(item.id);
+                setStatus("");
+                onNavigate?.();
+              }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-[13px] font-semibold rounded-xl transition-all ${
+                isActive
+                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/25"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <ItemIcon className={isActive ? "text-white" : "text-slate-500"} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+      <div className="p-4 border-t border-white/10">
+        <div className="px-3.5 py-3 rounded-xl bg-white/5 border border-white/10 mb-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Signed in as</p>
+          <p className="text-[13px] font-bold text-white truncate mt-0.5">{user.name}</p>
+        </div>
+        <button
+          onClick={logout}
+          type="button"
+          className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-rose-600 text-slate-300 hover:text-white font-semibold py-2.5 px-4 rounded-xl transition-all border border-white/10 hover:border-transparent text-[13px]"
         >
-          <span>🚪</span>
+          <IconLogout />
           <span>Log out</span>
         </button>
       </div>
@@ -120,78 +128,81 @@ export default function UserDashboard({ user, logout }) {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden relative">
-      <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/5 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[140px] pointer-events-none" />
-
-      <aside className="hidden lg:flex w-64 bg-gray-100 text-gray-900 flex-col flex-shrink-0 h-full border-r border-gray-200 z-20">
-        <SidebarContent />
+    <div className="flex h-screen bg-slate-100 text-slate-900 overflow-hidden">
+      <aside className="hidden lg:flex w-[264px] bg-slate-900 flex-col shrink-0 h-full">
+        {renderSidebar()}
       </aside>
 
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300"
+          <div
+            className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="relative flex flex-col w-full max-w-xs bg-gray-100 text-gray-900 h-full shadow-2xl z-10 border-r border-gray-200">
-            <SidebarContent />
+          <aside className="relative flex flex-col w-full max-w-xs bg-slate-900 h-full shadow-2xl animate-fade-in">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white"
+              aria-label="Close menu"
+            >
+              <IconX />
+            </button>
+            {renderSidebar(() => setMobileMenuOpen(false))}
           </aside>
         </div>
       )}
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden z-10">
-        
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 z-10">
-          <div className="flex items-center space-x-3">
-            <button 
-              type="button" 
+      <div className="flex-1 flex flex-col h-full min-w-0">
+        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-7 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-100 focus:outline-none transition-colors border border-gray-200"
+              className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 border border-slate-200"
+              aria-label="Open menu"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <IconMenu />
             </button>
-            <div className="hidden sm:block">
-              <h1 className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Signed in as</h1>
-              <p className="text-sm font-bold text-gray-800 uppercase">{user.name}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Workspace</p>
+              <h1 className="text-[15px] font-bold text-slate-900 truncate">{activeLabel}</h1>
             </div>
           </div>
 
-          <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-xl flex items-center space-x-2 shadow-sm shadow-emerald-950/20">
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-            <span className="text-xs text-emerald-600 font-semibold tracking-wide">
-              Balance: <span className="text-sm font-black text-emerald-700">{balance}</span> credits
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="hidden sm:flex items-center gap-2 pl-3 pr-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-xs text-emerald-700 font-semibold">
+                <span className="font-mono font-bold text-[14px]">{balance}</span> credits
+              </span>
+            </div>
+            <div className="sm:hidden px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-mono font-bold text-emerald-700">
+              {balance}
+            </div>
+            <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-bold">
+              {(user.name || "?").charAt(0).toUpperCase()}
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {status && (
-            <div className="p-4 mb-6 bg-violet-500/10 text-violet-700 border border-violet-500/20 rounded-xl text-xs sm:text-sm font-medium flex items-center justify-between shadow-lg">
-              <div className="flex items-center space-x-2.5">
-                <span className="text-base">✨</span>
-                <span>{status}</span>
+        <main className="flex-1 overflow-y-auto nice-scroll p-4 sm:p-7">
+          <div className="max-w-5xl mx-auto">
+            {status && (
+              <div className="mb-5">
+                <Notice tone="info" onDismiss={() => setStatus("")}>{status}</Notice>
               </div>
-              <button 
-                type="button" 
-                onClick={() => setStatus("")} 
-                className="text-gray-400 hover:text-gray-600 font-bold ml-2 transition-colors p-1"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+            )}
 
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xl">
-            {activeTab === "single" && <SingleSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} />}
-            {activeTab === "bulk" && <BulkSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} downloadSample={downloadSample} />}
-            {activeTab === "dynamic" && <DynamicSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} downloadSample={downloadSample} />}
-            {activeTab === "schedule" && <ScheduleSms userId={user.id} setStatus={setStatus} />}
-            {activeTab === "phonebook" && <Phonebook userId={user.id} setStatus={setStatus} />}
-            {activeTab === "credit" && <CreditTransfer userId={user.id} setStatus={setStatus} />}
-            {activeTab === "history" && <SmsHistory userId={user.id} />}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 shadow-sm">
+              {activeTab === "single" && <SingleSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} />}
+              {activeTab === "bulk" && <BulkSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} downloadSample={downloadSample} />}
+              {activeTab === "dynamic" && <DynamicSms userId={user.id} setStatus={setStatus} syncBalance={syncBalance} downloadSample={downloadSample} />}
+              {activeTab === "schedule" && <ScheduleSms userId={user.id} setStatus={setStatus} />}
+              {activeTab === "phonebook" && <Phonebook userId={user.id} setStatus={setStatus} />}
+              {activeTab === "credit" && <CreditTransfer userId={user.id} setStatus={setStatus} />}
+              {activeTab === "history" && <SmsHistory userId={user.id} />}
+            </div>
           </div>
         </main>
       </div>

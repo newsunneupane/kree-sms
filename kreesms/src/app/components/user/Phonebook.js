@@ -1,12 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { api } from "../../../lib/client-api";
+import { CardHeader, Field, PrimaryButton, DataTable, EmptyState, Notice, inputCls } from "../ui/ui";
+import { IconBook, IconPlus } from "../ui/Icons";
 
 export default function Phonebook({ userId, setStatus }) {
   const [groups, setGroups] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [totalContacts, setTotalContacts] = useState(0);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
@@ -30,13 +32,13 @@ export default function Phonebook({ userId, setStatus }) {
         setContacts(data.contacts || []);
         setTotalContacts(data.total_contacts || data.contacts?.length || 0);
       }
-    } catch (err) { 
-      console.error("Could not load contacts:", err); 
+    } catch (err) {
+      console.error("Could not load contacts:", err);
     }
   };
 
-  useEffect(() => { 
-    if (userId) fetchDirectory(); 
+  useEffect(() => {
+    if (userId) fetchDirectory();
   }, [userId, currentPage]);
 
   const downloadSampleTemplate = () => {
@@ -46,7 +48,7 @@ export default function Phonebook({ userId, setStatus }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "sample25.csv");
+    link.setAttribute("download", "contacts-template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -61,7 +63,7 @@ export default function Phonebook({ userId, setStatus }) {
 
     const lines = text.split("\n");
     const compiledPreview = [];
-    
+
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const cells = lines[i].split(",");
@@ -101,21 +103,21 @@ export default function Phonebook({ userId, setStatus }) {
 
   const handleToggleSelectContact = (id) => {
     if (selectedContactIds.includes(id)) {
-      setSelectedContactIds(selectedContactIds.filter(item => item !== id));
+      setSelectedContactIds(selectedContactIds.filter((item) => item !== id));
     } else {
       setSelectedContactIds([...selectedContactIds, id]);
     }
   };
 
   const handleSelectAllCurrentPage = () => {
-    const currentPageIds = contacts.map(c => c.id);
-    const allSelected = currentPageIds.every(id => selectedContactIds.includes(id));
+    const currentPageIds = contacts.map((c) => c.id);
+    const allSelected = currentPageIds.every((id) => selectedContactIds.includes(id));
 
     if (allSelected) {
-      setSelectedContactIds(selectedContactIds.filter(id => !currentPageIds.includes(id)));
+      setSelectedContactIds(selectedContactIds.filter((id) => !currentPageIds.includes(id)));
     } else {
       const newSelections = [...selectedContactIds];
-      currentPageIds.forEach(id => {
+      currentPageIds.forEach((id) => {
         if (!newSelections.includes(id)) newSelections.push(id);
       });
       setSelectedContactIds(newSelections);
@@ -138,14 +140,14 @@ export default function Phonebook({ userId, setStatus }) {
         },
       });
       setStatus(data.message);
-      if (data.success) { 
-        setNewGroup({ group_name: "", description: "" }); 
-        setSelectedContactIds([]); 
+      if (data.success) {
+        setNewGroup({ group_name: "", description: "" });
+        setSelectedContactIds([]);
         setIsGroupMode(false);
-        fetchDirectory(); 
+        fetchDirectory();
       }
-    } catch (err) { 
-      setStatus("Could not create the group. Please try again."); 
+    } catch (err) {
+      setStatus("Could not create the group. Please try again.");
     }
   };
 
@@ -157,95 +159,102 @@ export default function Phonebook({ userId, setStatus }) {
         body: { ...newContact },
       });
       setStatus(data.message);
-      if (data.success) { 
-        setNewContact({ firstname: "", lastname: "", mobile: "" }); 
-        fetchDirectory(); 
+      if (data.success) {
+        setNewContact({ firstname: "", lastname: "", mobile: "" });
+        fetchDirectory();
       }
-    } catch (err) { 
-      setStatus("Could not add the contact. Please try again."); 
+    } catch (err) {
+      setStatus("Could not add the contact. Please try again.");
     }
   };
 
   const totalPages = Math.ceil(totalContacts / itemsPerPage) || 1;
 
-  return (
-    <div className="space-y-8 max-w-6xl mx-auto transition-all duration-300">
-      
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
-        <div>
-          <h2 className="text-sm font-black text-gray-800 uppercase tracking-wider">Contacts</h2>
-          <p className="text-[11px] text-gray-400"><span className="font-mono font-bold text-violet-600">{totalContacts}</span> contacts saved</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={downloadSampleTemplate}
-            className="bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5"
-          >
-            📥 Sample CSV
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => {
-              setIsGroupMode(!isGroupMode);
-              setSelectedContactIds([]);
-            }}
-            className={`text-xs font-black px-4 py-2 rounded-xl transition-all shadow-md ${
-              isGroupMode 
-                ? "bg-amber-500 hover:bg-amber-600 text-white" 
-                : "bg-gray-900 hover:bg-black text-white"
-            }`}
-          >
-            {isGroupMode ? "✕ Close group builder" : "👥 New group"}
-          </button>
+  // Ellipsis pagination — visual only, same setCurrentPage logic.
+  const pageList = useMemo(() => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const set = new Set([1, 2, currentPage - 1, currentPage, currentPage + 1, totalPages - 1, totalPages]);
+    const sorted = [...set].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    const out = [];
+    let prev = 0;
+    for (const p of sorted) {
+      if (p - prev > 1) out.push("…");
+      out.push(p);
+      prev = p;
+    }
+    return out;
+  }, [totalPages, currentPage]);
 
-          <button
-            type="button"
-            onClick={() => setShowBulkPortal(!showBulkPortal)}
-            className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-md shadow-violet-600/10"
-          >
-            {showBulkPortal ? "✕ Hide import" : "📋 Bulk import"}
-          </button>
-        </div>
-      </div>
+  const from = totalContacts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const to = Math.min(currentPage * itemsPerPage, totalContacts);
+
+  return (
+    <div className="space-y-6">
+      <CardHeader
+        title="Phonebook"
+        subtitle={`${totalContacts.toLocaleString()} contacts saved · ${groups.length} groups`}
+        action={
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={downloadSampleTemplate}
+              className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-all"
+            >
+              Sample CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsGroupMode(!isGroupMode);
+                setSelectedContactIds([]);
+              }}
+              className={`text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-all ${
+                isGroupMode ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-slate-900 hover:bg-slate-800 text-white"
+              }`}
+            >
+              {isGroupMode ? "Close group builder" : "New group"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBulkPortal(!showBulkPortal)}
+              className="bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-all"
+            >
+              {showBulkPortal ? "Hide import" : "Bulk import"}
+            </button>
+          </div>
+        }
+      />
 
       {showBulkPortal && (
-        <div className="bg-gray-900 text-white p-5 sm:p-6 rounded-2xl border border-gray-800 shadow-xl transition-all animate-fade-in grid md:grid-cols-2 gap-6">
-          <form onSubmit={handleBulkSubmit} className="space-y-3.5">
+        <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl grid md:grid-cols-2 gap-5 animate-fade-in">
+          <form onSubmit={handleBulkSubmit} className="space-y-3">
             <div>
-              <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest font-mono">Bulk import</h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">Paste rows below, starting with a header line like firstname,lastname,mobile.</p>
+              <h4 className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">Bulk import</h4>
+              <p className="text-xs text-slate-500 mt-1">Paste rows below, starting with a header line: <code className="font-mono bg-white border border-slate-200 px-1 rounded">firstname,lastname,mobile</code></p>
             </div>
             <textarea
               rows={6}
               value={bulkCsvText}
-              placeholder="firstname,lastname,mobile&#10;Ram,Bahadur,9841000000&#10;Sita,Kumari,9851000001"
+              placeholder={"firstname,lastname,mobile\nRam,Bahadur,9841000000\nSita,Kumari,9851000001"}
               onChange={(e) => handleBulkTextChange(e.target.value)}
-              className="w-full p-3 font-mono text-xs text-gray-200 bg-gray-950 border border-gray-800 rounded-xl focus:outline-none focus:border-blue-500 placeholder-gray-600 resize-none"
+              className={`${inputCls} font-mono !text-xs resize-none`}
               required
             />
-            <button
-              type="submit"
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all"
-            >
-              🚀 Import {bulkPreview.length} contacts
-            </button>
+            <PrimaryButton loading={false}>
+              Import {bulkPreview.length} contact{bulkPreview.length === 1 ? "" : "s"}
+            </PrimaryButton>
           </form>
-
-          <div className="flex flex-col h-full justify-between">
-            <div>
-              <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest font-mono">Preview</h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">Check the parsed rows before importing.</p>
-            </div>
-            <div className="mt-3 bg-gray-950 border border-gray-800 rounded-xl p-3 h-40 overflow-y-auto font-mono text-[11px] text-gray-400 divide-y divide-gray-900">
+          <div>
+            <h4 className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">Preview</h4>
+            <p className="text-xs text-slate-500 mt-1 mb-3">Check the parsed rows before importing.</p>
+            <div className="bg-white border border-slate-200 rounded-xl p-3 h-[196px] overflow-y-auto nice-scroll font-mono text-[12px] divide-y divide-slate-100">
               {bulkPreview.length === 0 ? (
-                <div className="text-center text-gray-600 py-12 italic">Paste data on the left to preview rows here...</div>
+                <p className="text-center text-slate-400 py-14 italic font-sans text-xs">Paste data on the left to preview rows here...</p>
               ) : (
                 bulkPreview.map((item, index) => (
-                  <div key={index} className="py-1.5 flex justify-between items-center">
-                    <span className="text-gray-200 font-bold max-w-[180px] truncate">{index + 1}. {item.firstname} {item.lastname}</span>
-                    <span className="text-emerald-500 font-semibold">{item.mobile}</span>
+                  <div key={index} className="py-2 flex justify-between items-center gap-2">
+                    <span className="text-slate-800 font-semibold truncate">{index + 1}. {item.firstname} {item.lastname}</span>
+                    <span className="text-emerald-600 font-semibold whitespace-nowrap">{item.mobile}</span>
                   </div>
                 ))
               )}
@@ -254,211 +263,181 @@ export default function Phonebook({ userId, setStatus }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6">
-        
-        {isGroupMode && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 sm:p-6 rounded-2xl border border-blue-200 shadow-md animate-fade-in">
-            <div className="mb-4">
-              <h3 className="text-sm font-black text-blue-900 uppercase tracking-wider flex items-center space-x-2">
-                <span>⚡</span>
-                <span>New group</span>
-              </h3>
-              <p className="text-[11px] text-blue-700 mt-0.5">
-                Tick contacts in the table below, name the group, then create it.
-              </p>
-            </div>
-            <form onSubmit={handleAddGroupWithContacts} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Group name</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. VIP customers" 
-                  required 
-                  value={newGroup.group_name}
-                  className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all shadow-sm" 
-                  onChange={e => setNewGroup({...newGroup, group_name: e.target.value})} 
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Description (optional)</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Marketing list" 
-                  value={newGroup.description}
-                  className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all shadow-sm" 
-                  onChange={e => setNewGroup({...newGroup, description: e.target.value})} 
-                />
-              </div>
-              <button 
-                type="submit" 
-                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-3 rounded-xl text-xs font-bold tracking-wide transition-all shadow-md h-[46px]"
-              >
-                Create group ({selectedContactIds.length} selected)
-              </button>
-            </form>
-          </div>
-        )}
-
-        {!isGroupMode && (
-          <div className="bg-gray-100 p-5 sm:p-6 rounded-2xl border border-gray-200">
-            <div className="mb-4">
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider flex items-center space-x-2">
-                <span>👤</span>
-                <span>Add contact</span>
-              </h3>
-              <p className="text-[11px] text-gray-500 mt-0.5">Add one contact to your phonebook.</p>
-            </div>
-            <form onSubmit={handleAddSingleContact} className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end">
-              <input 
-                type="text" 
-                placeholder="First name" 
+      {isGroupMode ? (
+        <div className="bg-violet-50/60 p-5 rounded-2xl border border-violet-200 animate-fade-in">
+          <h4 className="text-[13px] font-bold text-slate-800">New group <span className="text-slate-400 font-medium">— tick contacts below, name the group, then create it.</span></h4>
+          <form onSubmit={handleAddGroupWithContacts} className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <Field label="Group name">
+              <input
+                type="text"
+                placeholder="e.g. VIP customers"
                 required
-                value={newContact.firstname} 
-                className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all" 
-                onChange={e => setNewContact({...newContact, firstname: e.target.value})} 
+                value={newGroup.group_name}
+                className={inputCls}
+                onChange={(e) => setNewGroup({ ...newGroup, group_name: e.target.value })}
               />
-              <input 
-                type="text" 
-                placeholder="Last name" 
-                value={newContact.lastname} 
-                className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all" 
-                onChange={e => setNewContact({...newContact, lastname: e.target.value})} 
+            </Field>
+            <Field label="Description (optional)">
+              <input
+                type="text"
+                placeholder="e.g. Marketing list"
+                value={newGroup.description}
+                className={inputCls}
+                onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
               />
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Mobile number (e.g. 98XXXXXXXX)" 
-                  required 
-                  value={newContact.mobile} 
-                  className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:outline-none transition-all" 
-                  onChange={e => setNewContact({...newContact, mobile: e.target.value})} 
-                />
-                <button 
-                  type="submit" 
-                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-5 rounded-xl text-xs font-bold tracking-wide transition-all shadow-md whitespace-nowrap h-[44px]"
-                >
-                  ➕ Add
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-      </div>
+            </Field>
+            <PrimaryButton loading={false}>
+              Create group ({selectedContactIds.length} selected)
+            </PrimaryButton>
+          </form>
+        </div>
+      ) : (
+        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+          <h4 className="text-[13px] font-bold text-slate-800 flex items-center gap-2">
+            <IconPlus className="w-4 h-4 text-slate-400" />
+            Add contact
+          </h4>
+          <form onSubmit={handleAddSingleContact} className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+            <Field label="First name">
+              <input
+                type="text"
+                placeholder="First name"
+                required
+                value={newContact.firstname}
+                className={inputCls}
+                onChange={(e) => setNewContact({ ...newContact, firstname: e.target.value })}
+              />
+            </Field>
+            <Field label="Last name">
+              <input
+                type="text"
+                placeholder="Last name"
+                value={newContact.lastname}
+                className={inputCls}
+                onChange={(e) => setNewContact({ ...newContact, lastname: e.target.value })}
+              />
+            </Field>
+            <Field label="Mobile">
+              <input
+                type="text"
+                placeholder="98XXXXXXXX"
+                required
+                value={newContact.mobile}
+                className={`${inputCls} font-mono`}
+                onChange={(e) => setNewContact({ ...newContact, mobile: e.target.value })}
+              />
+            </Field>
+            <button
+              type="submit"
+              className="bg-violet-600 hover:bg-violet-700 text-white px-5 rounded-xl text-[13px] font-semibold transition-all h-[46px]"
+            >
+              Add contact
+            </button>
+          </form>
+        </div>
+      )}
 
-      <div className="bg-gray-100 p-5 sm:p-6 rounded-2xl border border-gray-200">
-        <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <div>
-            <h3 className="text-base font-extrabold text-gray-800 tracking-tight">Contacts</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalContacts)} of {totalContacts}</p>
-          </div>
+      <div>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-3">
+          <p className="text-xs text-slate-500">Showing {from}–{to} of {totalContacts.toLocaleString()}</p>
           {isGroupMode && (
-            <div className="text-xs font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 animate-pulse">
-              ⚙️ Tick contacts to add them to the new group
-            </div>
+            <Notice tone="info">
+              <span className="text-xs font-semibold">Group builder is on — tick contacts to include them.</span>
+            </Notice>
           )}
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
+        <DataTable
+          headers={[
+            ...(isGroupMode ? [{ label: "" }] : []),
+            { label: "Name" },
+            { label: "Mobile" },
+            { label: "Group" },
+          ]}
+        >
+          {contacts.length === 0 ? (
+            <tr>
+              <td colSpan={isGroupMode ? 4 : 3} className="p-0">
+                <EmptyState title="No contacts yet" subtitle="Add one above, or use Bulk import to add many at once." />
+              </td>
+            </tr>
+          ) : (
+            contacts.map((c) => (
+              <tr key={c.id} className={`hover:bg-slate-50 transition-colors ${isGroupMode && selectedContactIds.includes(c.id) ? "bg-violet-50/60" : ""}`}>
                 {isGroupMode && (
-                  <th className="p-3.5 w-12 text-center bg-amber-50/40 border-r border-gray-200 animate-fade-in">
+                  <td className="px-4 py-3 w-12">
                     <input
                       type="checkbox"
-                      className="w-4 h-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
-                      checked={contacts.length > 0 && contacts.map(c => c.id).every(id => selectedContactIds.includes(id))}
-                      onChange={handleSelectAllCurrentPage}
+                      className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
+                      checked={selectedContactIds.includes(c.id)}
+                      onChange={() => handleToggleSelectContact(c.id)}
+                      aria-label={`Select ${c.firstname} ${c.lastname}`}
                     />
-                  </th>
-                )}
-                <th className="p-3.5">Name</th>
-                <th className="p-3.5">Mobile</th>
-                <th className="p-3.5">Group</th>
-              </tr>
-            </thead>
-            <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
-              {contacts.length === 0 ? (
-                <tr>
-                  <td colSpan={isGroupMode ? 4 : 3} className="p-8 text-center text-gray-400 font-medium font-sans">
-                    No contacts yet. Add one above to get started.
                   </td>
-                </tr>
-              ) : (
-                contacts.map(c => (
-                  <tr key={c.id} className={`hover:bg-gray-50 transition-colors ${isGroupMode && selectedContactIds.includes(c.id) ? "bg-blue-50" : ""}`}>
-                    
-                    {isGroupMode && (
-                      <td className="p-3.5 text-center bg-amber-50/10 border-r border-gray-200 animate-fade-in w-12">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
-                          checked={selectedContactIds.includes(c.id)}
-                          onChange={() => handleToggleSelectContact(c.id)}
-                        />
-                      </td>
-                    )}
-                    
-                    <td className="p-3.5 font-bold text-gray-900">{c.firstname} {c.lastname}</td>
-                    <td className="p-3.5 font-mono text-gray-500 font-medium tracking-wide">{c.mobile}</td>
-                    <td className="p-3.5">
-                      <span className={`inline-flex items-center space-x-1 text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
-                        c.group_name 
-                          ? "bg-purple-50 text-purple-700 border border-purple-200" 
-                          : "bg-gray-100 text-gray-500 border border-gray-200"
-                      }`}>
-                        <span>{c.group_name ? "👥" : "👤"}</span>
-                        <span>{c.group_name || "No group"}</span>
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+                <td className="px-4 py-3 font-semibold text-slate-900">{c.firstname} {c.lastname}</td>
+                <td className="px-4 py-3 font-mono text-xs text-slate-500">{c.mobile}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-lg font-bold border ${
+                    c.group_name ? "bg-violet-50 text-violet-700 border-violet-200" : "bg-slate-100 text-slate-500 border-slate-200"
+                  }`}>
+                    <IconBook className="w-3 h-3" />
+                    {c.group_name || "No group"}
+                  </span>
+                </td>
+              </tr>
+            ))
+          )}
+        </DataTable>
 
         {totalPages > 1 && (
-          <div className="mt-5 flex items-center justify-center gap-1.5 pt-4 border-t border-gray-200">
+          <div className="mt-4 flex items-center justify-center gap-1.5 flex-wrap">
             <button
               type="button"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all"
             >
-              ◀ Prev
+              Prev
             </button>
-            
-            {Array.from({ length: totalPages }, (_, index) => {
-              const pageNumber = index + 1;
-              return (
+            {pageList.map((p, i) =>
+              p === "…" ? (
+                <span key={`e${i}`} className="text-slate-400 text-xs px-1">…</span>
+              ) : (
                 <button
-                  key={pageNumber}
+                  key={p}
                   type="button"
-                  onClick={() => setCurrentPage(pageNumber)}
-                  className={`w-8 h-8 rounded-xl text-xs font-black font-mono transition-all border ${
-                    currentPage === pageNumber
-                      ? "bg-gray-900 border-gray-900 text-white shadow-sm"
-                      : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                  onClick={() => setCurrentPage(p)}
+                  className={`min-w-9 h-9 px-2 rounded-xl text-xs font-bold font-mono transition-all border ${
+                    currentPage === p ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
                   }`}
                 >
-                  {pageNumber}
+                  {p}
                 </button>
-              );
-            })}
-
+              )
+            )}
             <button
               type="button"
               disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition-all"
             >
-              Next ▶
+              Next
             </button>
           </div>
         )}
       </div>
 
+      {groups.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {groups.map((g) => (
+            <span key={g.id} className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-xl">
+              <IconBook className="w-3.5 h-3.5 text-violet-500" />
+              {g.group_name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

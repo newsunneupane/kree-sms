@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../../../lib/client-api";
 import { smsSegments } from "../../../lib/sms-segments";
+import { CardHeader, Field, CostBadge, PrimaryButton, StatusChip, DataTable, EmptyState, inputCls } from "../ui/ui";
+import { IconClock } from "../ui/Icons";
 
 export default function ScheduleSms({ userId, setStatus }) {
   const [scheduleData, setScheduleData] = useState({ recipient: "", message: "", scheduled_at: "" });
@@ -23,9 +25,9 @@ export default function ScheduleSms({ userId, setStatus }) {
     }
   };
 
-  useEffect(() => { 
+  useEffect(() => {
     if (userId) {
-      fetchQueue(); 
+      fetchQueue();
     }
   }, [userId]);
 
@@ -44,137 +46,92 @@ export default function ScheduleSms({ userId, setStatus }) {
       }
     } catch (err) {
       setStatus("Could not schedule the message. Please try again.");
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusStyle = (status) => {
-    switch (status?.toLowerCase()) {
-      case "sent":
-        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-      case "failed":
-        return "bg-rose-50 text-rose-700 border border-rose-200";
-      default:
-        return "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse";
+  const formatDate = (v) => {
+    try {
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return v;
+      return d.toLocaleString();
+    } catch {
+      return v;
     }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto transition-all duration-300">
-      
-      <div className="bg-gray-100 p-5 sm:p-6 rounded-2xl border border-gray-200 h-fit">
-        <div className="mb-5">
-          <h3 className="text-base font-extrabold text-gray-800 tracking-tight flex items-center space-x-2">
-            <span>⏰</span>
-            <span>Schedule SMS</span>
-          </h3>
-          <p className="text-xs text-gray-500 mt-0.5">Write a message now, send it later.</p>
-        </div>
-
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="lg:col-span-2">
+        <CardHeader title="Schedule SMS" subtitle="Write a message now, send it later." />
         <form onSubmit={handleSchedule} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Phone number</label>
-            <input 
-              type="text" 
-              placeholder="e.g. 98XXXXXXXX" 
-              required 
+          <Field label="Phone number">
+            <input
+              type="text"
+              placeholder="98XXXXXXXX"
+              required
               value={scheduleData.recipient}
-              className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none transition-all placeholder-gray-400 font-mono"
-              onChange={e => setScheduleData({...scheduleData, recipient: e.target.value})} 
+              className={`${inputCls} font-mono`}
+              onChange={(e) => setScheduleData({ ...scheduleData, recipient: e.target.value })}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Send at</label>
-            <input 
-              type="datetime-local" 
-              required 
+          <Field label="Send at">
+            <input
+              type="datetime-local"
+              required
               value={scheduleData.scheduled_at}
-              className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none transition-all cursor-pointer"
-              onChange={e => setScheduleData({...scheduleData, scheduled_at: e.target.value})} 
+              className={`${inputCls} cursor-pointer`}
+              onChange={(e) => setScheduleData({ ...scheduleData, scheduled_at: e.target.value })}
             />
-          </div>
+          </Field>
 
           <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Message</label>
-              
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors flex items-center space-x-1.5 ${
-                creditCost > 1 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-500'
-              }`}>
-                <span>{charCount} chars{seg.encoding === "Unicode" ? " • Unicode" : ""}</span>
-                <span className="text-gray-400">•</span>
-                <span>Cost: <strong className="font-black text-xs">{creditCost}</strong> {creditCost === 1 ? 'credit' : 'credits'}</span>
-              </span>
+            <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Message</span>
+              <CostBadge chars={charCount} encoding={seg.encoding} cost={creditCost} />
             </div>
-            
-            <textarea 
-              placeholder="Type your message..." 
-              required 
-              rows="3" 
+            <textarea
+              placeholder="Type your message..."
+              required
+              rows="4"
               value={scheduleData.message}
-              className="w-full p-3 border border-gray-300 rounded-xl text-xs font-medium text-gray-900 bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none transition-all placeholder-gray-400 leading-relaxed"
-              onChange={e => setScheduleData({...scheduleData, message: e.target.value})} 
+              className={`${inputCls} leading-relaxed resize-none`}
+              onChange={(e) => setScheduleData({ ...scheduleData, message: e.target.value })}
             />
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.99] text-white p-3.5 rounded-xl font-bold text-xs tracking-wide transition-all shadow-md shadow-indigo-600/10 hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-2"
-          >
-            <span>{loading ? "⚡" : "📅"}</span>
-            <span>{loading ? "Scheduling..." : `Schedule SMS (${creditCost} credits)`}</span>
-          </button>
+          <PrimaryButton loading={loading}>
+            <IconClock className="w-4 h-4" />
+            {loading ? "Scheduling..." : `Schedule SMS (${creditCost} credit${creditCost === 1 ? "" : "s"})`}
+          </PrimaryButton>
         </form>
       </div>
 
-      <div className="lg:col-span-2 bg-gray-100 p-5 sm:p-6 rounded-2xl border border-gray-200">
-        <div className="mb-5">
-          <h3 className="text-base font-extrabold text-gray-800 tracking-tight flex items-center space-x-2">
-            <span>📊</span>
-            <span>Scheduled messages</span>
-          </h3>
-          <p className="text-xs text-gray-500 mt-0.5">Upcoming and past scheduled messages.</p>
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-                <th className="p-3.5">Send at</th>
-                <th className="p-3.5">To</th>
-                <th className="p-3.5">Message</th>
-                <th className="p-3.5">Status</th>
+      <div className="lg:col-span-3 lg:border-l lg:border-slate-200 lg:pl-6">
+        <CardHeader title="Scheduled messages" subtitle="Upcoming and past scheduled messages." />
+        <DataTable headers={[{ label: "Send at" }, { label: "To" }, { label: "Message" }, { label: "Status" }]}>
+          {queue.length === 0 ? (
+            <tr>
+              <td colSpan="4" className="p-0">
+                <EmptyState title="No scheduled messages yet" subtitle="Schedule your first message from the form." />
+              </td>
+            </tr>
+          ) : (
+            queue.map((item) => (
+              <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-4 py-3 font-mono text-xs font-semibold text-violet-700 whitespace-nowrap">{formatDate(item.scheduled_at)}</td>
+                <td className="px-4 py-3 font-mono text-xs text-slate-600 whitespace-nowrap">{item.recipient}</td>
+                <td className="px-4 py-3 max-w-[200px] truncate text-slate-500" title={item.message}>{item.message}</td>
+                <td className="px-4 py-3">
+                  <StatusChip value={item.status || "Pending"} />
+                </td>
               </tr>
-            </thead>
-            <tbody className="text-xs divide-y divide-gray-200 text-gray-700">
-              {queue.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="p-8 text-center text-gray-400 font-medium font-sans">
-                    No scheduled messages yet.
-                  </td>
-                </tr>
-              ) : (
-                queue.map(item => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3.5 font-mono text-xs font-bold text-violet-600 tracking-tight">{item.scheduled_at}</td>
-                    <td className="p-3.5 font-mono font-medium text-gray-600 tracking-wide">{item.recipient}</td>
-                    <td className="p-3.5 truncate max-w-[160px] sm:max-w-xs text-gray-500" title={item.message}>{item.message}</td>
-                    <td className="p-3.5">
-                      <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide ${getStatusStyle(item.status)}`}>
-                        {item.status || "Pending"}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))
+          )}
+        </DataTable>
       </div>
-
     </div>
   );
 }

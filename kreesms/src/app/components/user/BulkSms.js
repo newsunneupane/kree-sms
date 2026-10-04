@@ -1,16 +1,99 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import { api } from "../../../lib/client-api";
 import { smsCreditCost } from "../../../lib/sms-segments";
+import { CardHeader, Field, CostBadge, PrimaryButton, inputCls, selectCls } from "../ui/ui";
+import { IconUpload, IconChevronDown, IconClock, IconSend, IconDoc } from "../ui/Icons";
+
+function SourceToggle({ value, onChange }) {
+  return (
+    <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto">
+      {[
+        { id: "file", label: "Upload file" },
+        { id: "group", label: "Phonebook group" },
+      ].map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={`flex-1 sm:flex-initial px-4 py-2 text-[13px] font-semibold rounded-lg transition-all ${
+            value === o.id ? "bg-white text-violet-700 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Dropzone({ file, onPick, onRemove, acceptId }) {
+  const inputRef = useRef(null);
+  const clear = () => {
+    onRemove();
+    if (inputRef.current) inputRef.current.value = "";
+  };
+  if (file) {
+    return (
+      <div className="flex items-center justify-between gap-3 w-full bg-white border border-slate-200 p-3 rounded-xl animate-fade-in">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="w-9 h-9 rounded-lg bg-violet-50 border border-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+            <IconDoc />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-slate-800 truncate">{file.name}</p>
+            <p className="text-[11px] text-slate-400 font-mono">{(file.size / 1024).toFixed(1)} KB</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={clear}
+          className="text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-lg transition-colors whitespace-nowrap"
+        >
+          Remove
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => inputRef.current?.click()}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        const f = e.dataTransfer.files?.[0];
+        if (f) onPick(f);
+      }}
+      className="w-full border-2 border-dashed border-slate-300 hover:border-violet-400 rounded-xl p-6 bg-slate-50/60 transition-colors flex flex-col items-center justify-center min-h-[120px] gap-1.5 cursor-pointer"
+    >
+      <span className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center">
+        <IconUpload />
+      </span>
+      <span className="text-[13px] text-slate-600 font-semibold">Click to choose, or drag & drop your recipient list</span>
+      <span className="text-[11px] text-slate-400">Supports .csv, .xls, .xlsx</span>
+      <input
+        ref={inputRef}
+        id={acceptId}
+        type="file"
+        accept=".csv, .xls, .xlsx"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
+      />
+    </button>
+  );
+}
+
+export { SourceToggle, Dropzone };
 
 export default function BulkSms({ userId, setStatus, syncBalance, downloadSample }) {
   const [bulkMessage, setBulkMessage] = useState("");
-  const [sourceType, setSourceType] = useState("file"); 
+  const [sourceType, setSourceType] = useState("file");
   const [groups, setGroups] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [scheduledAt, setScheduledAt] = useState(""); 
+  const [scheduledAt, setScheduledAt] = useState("");
   const [loading, setLoading] = useState(false);
 
   const charCount = bulkMessage.length;
@@ -21,8 +104,8 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
       try {
         const data = await api("/api/phonebook/get-phonebook?limit=100");
         if (data.success) setGroups(data.groups);
-      } catch (err) { 
-        console.error("Could not load groups:", err); 
+      } catch (err) {
+        console.error("Could not load groups:", err);
       }
     };
     if (userId) fetchGroups();
@@ -30,8 +113,6 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
 
   const handleRemoveFile = () => {
     setUploadedFile(null);
-    const fileInput = document.getElementById("campaignFileInput");
-    if (fileInput) fileInput.value = "";
   };
 
   const handleSubmit = async (e) => {
@@ -96,157 +177,87 @@ export default function BulkSms({ userId, setStatus, syncBalance, downloadSample
   };
 
   return (
-    <div className="max-w-3xl bg-gray-100 p-5 sm:p-8 rounded-2xl border border-gray-200 transition-all duration-300">
-      
+    <div className="max-w-3xl">
+      <CardHeader title="Bulk SMS" subtitle="Send or schedule one message to many recipients." />
       <div className="mb-6">
-        <h3 className="text-xl font-extrabold text-gray-800 tracking-tight">Bulk SMS</h3>
-        <p className="text-xs text-gray-500 mt-1">Send or schedule one message to many recipients.</p>
-      </div>
-      
-      <div className="flex bg-gray-200/50 p-1 rounded-xl items-center self-start w-full sm:w-fit mb-6 border border-gray-300/30">
-        <button 
-          type="button" 
-          onClick={() => setSourceType("file")} 
-          className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
-            sourceType === "file" ? "bg-white text-violet-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
-          }`}
-        >
-          <span>📁</span>
-          <span>Upload file</span>
-        </button>
-        <button 
-          type="button" 
-          onClick={() => setSourceType("group")} 
-          className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
-            sourceType === "group" ? "bg-white text-violet-600 shadow-sm" : "text-gray-500 hover:text-gray-800"
-          }`}
-        >
-          <span>👥 Phonebook group</span>
-        </button>
+        <SourceToggle value={sourceType} onChange={setSourceType} />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        
         {sourceType === "file" ? (
-          <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-200 gap-2">
-              <div className="flex items-center space-x-2 text-xs font-medium text-gray-600">
-                <span className="text-base">📋</span>
-                <span>Your file needs a column named <code className="bg-gray-200 font-mono px-1.5 py-0.5 rounded text-violet-600 font-bold">mobile</code></span>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => downloadSample("bulk")} 
-                className="text-violet-600 hover:text-violet-700 font-bold text-xs flex items-center space-x-1 self-start sm:self-auto transition-colors"
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+              <p className="text-xs text-slate-600">
+                Your file needs a column named <code className="bg-white border border-slate-200 font-mono px-1.5 py-0.5 rounded text-violet-700 font-bold">mobile</code>
+              </p>
+              <button
+                type="button"
+                onClick={() => downloadSample("bulk")}
+                className="text-violet-700 hover:text-violet-800 font-bold text-xs whitespace-nowrap"
               >
-                <span>📥 Download sample</span>
+                Download sample
               </button>
             </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Upload file</label>
-              <div className="relative group border-2 border-dashed border-gray-300 hover:border-violet-400 rounded-xl p-4 bg-gray-50/50 transition-colors flex flex-col items-center justify-center min-h-[110px]">
-                {!uploadedFile ? (
-                  <>
-                    <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📤</span>
-                    <span className="text-xs text-gray-500 font-medium">Click to choose your recipient list</span>
-                    <span className="text-[10px] text-gray-400 mt-0.5">Supports .csv, .xls, .xlsx</span>
-                    <input 
-                      id="campaignFileInput" 
-                      type="file" 
-                      required
-                      accept=".csv, .xls, .xlsx" 
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                      onChange={(e) => setUploadedFile(e.target.files[0])} 
-                    />
-                  </>
-                ) : (
-                  <div className="flex items-center justify-between w-full bg-white border border-gray-200 p-3 rounded-xl shadow-sm animate-fade-in">
-                    <div className="flex items-center space-x-3 truncate">
-                      <span className="text-xl">📊</span>
-                      <div className="truncate">
-                        <p className="text-xs font-bold text-gray-800 truncate">{uploadedFile.name}</p>
-                        <p className="text-[10px] text-gray-400">{(uploadedFile.size / 1024).toFixed(1)} KB</p>
-                      </div>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={handleRemoveFile} 
-                      className="text-xs font-bold bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition-colors ml-2"
-                    >
-                      ✕ Remove
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <Field label="Recipient file">
+              <Dropzone file={uploadedFile} onPick={setUploadedFile} onRemove={handleRemoveFile} acceptId="campaignFileInput" />
+            </Field>
           </div>
         ) : (
           <div className="animate-fade-in">
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">Phonebook group</label>
-            <div className="relative">
-              <select 
-                value={selectedGroupId} 
-                required 
-                className="w-full p-3 border border-gray-300 rounded-xl bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none text-xs font-medium transition-all appearance-none cursor-pointer text-gray-700" 
-                onChange={e => setSelectedGroupId(e.target.value)}
-              >
-                <option value="">-- Choose a group --</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id}>👥 {g.group_name} {g.description ? `(${g.description})` : ''}</option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1.5 pointer-events-none text-gray-400">▼</div>
-            </div>
+            <Field label="Phonebook group">
+              <div className="relative">
+                <select
+                  value={selectedGroupId}
+                  required
+                  className={selectCls}
+                  onChange={(e) => setSelectedGroupId(e.target.value)}
+                >
+                  <option value="">Choose a group</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.group_name}{g.description ? ` — ${g.description}` : ""}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <IconChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+            </Field>
           </div>
         )}
 
         <div>
-          <div className="flex justify-between items-center mb-1.5">
-            <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Message</label>
-            
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors flex items-center space-x-1.5 ${
-              creditCostPerRecipient > 1 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-100 text-gray-500'
-            }`}>
-              <span>{charCount} chars</span>
-              <span className="text-gray-400">•</span>
-              <span>Per recipient: <strong className="font-black text-xs">{creditCostPerRecipient}</strong> {creditCostPerRecipient === 1 ? 'credit' : 'credits'}</span>
-            </span>
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Message</span>
+            <CostBadge chars={charCount} cost={creditCostPerRecipient} perRecipient />
           </div>
-          <textarea 
-            placeholder="Type your message..." 
-            required 
-            rows="4" 
-            value={bulkMessage} 
-            className="w-full p-3.5 border border-gray-300 rounded-xl focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none text-xs leading-relaxed text-gray-900 transition-all placeholder-gray-400 bg-white" 
-            onChange={(e) => setBulkMessage(e.target.value)} 
+          <textarea
+            placeholder="Type your message..."
+            required
+            rows="4"
+            value={bulkMessage}
+            className={`${inputCls} leading-relaxed resize-none`}
+            onChange={(e) => setBulkMessage(e.target.value)}
           />
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300 transition-colors hover:bg-gray-100">
-          <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-1 flex items-center space-x-1.5">
-            <span>⏰</span>
-            <span>Schedule for later</span>
-          </label>
-          <p className="text-[11px] text-gray-500 mb-3">Leave empty to send immediately.</p>
-          <input 
-            type="datetime-local" 
-            value={scheduledAt} 
-            className="p-2.5 border border-gray-300 rounded-xl text-xs font-semibold bg-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 focus:outline-none text-gray-700 transition-all cursor-pointer" 
-            onChange={e => setScheduledAt(e.target.value)} 
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2">
+            <IconClock className="w-4 h-4 text-slate-400" />
+            Schedule for later
+          </p>
+          <p className="text-[12px] text-slate-500 mt-1 mb-3">Leave empty to send immediately.</p>
+          <input
+            type="datetime-local"
+            value={scheduledAt}
+            className={`${inputCls} sm:max-w-xs cursor-pointer`}
+            onChange={(e) => setScheduledAt(e.target.value)}
           />
         </div>
 
-        <button 
-          type="submit" 
-          disabled={loading} 
-          className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.99] text-white p-3.5 rounded-xl font-bold text-xs tracking-wide transition-all shadow-md shadow-indigo-600/10 hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center space-x-2"
-        >
-          <span>{loading ? "⚡" : scheduledAt ? "⏰" : "🚀"}</span>
-          <span>
-            {loading ? "Sending..." : scheduledAt ? "Schedule campaign" : "Send now"}
-          </span>
-        </button>
+        <PrimaryButton loading={loading}>
+          {scheduledAt ? <IconClock className="w-4 h-4" /> : <IconSend className="w-4 h-4" />}
+          {loading ? "Sending..." : scheduledAt ? "Schedule campaign" : "Send now"}
+        </PrimaryButton>
       </form>
     </div>
   );

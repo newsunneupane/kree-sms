@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { api } from "../../../lib/client-api";
 import { smsSegments } from "../../../lib/sms-segments";
+import { CardHeader, Field, CostBadge, PrimaryButton, inputCls } from "../ui/ui";
+import { IconSend } from "../ui/Icons";
 
 export default function SingleSms({ userId, setStatus, syncBalance }) {
   const [singleData, setSingleData] = useState({ to: "", message: "" });
@@ -41,67 +43,48 @@ export default function SingleSms({ userId, setStatus, syncBalance }) {
   };
 
   return (
-    <div className="max-w-2xl bg-gray-100 border border-gray-200 rounded-2xl p-2 sm:p-4 transition-all duration-300 mx-auto lg:mx-0">
-      
-      <div className="mb-6 pl-1">
-        <h3 className="text-lg font-bold text-gray-800 tracking-tight flex items-center space-x-2.5">
-          <span className="filter drop-shadow">💬</span>
-          <span>Single SMS</span>
-        </h3>
-        <p className="text-xs text-gray-500 mt-1">Send an instant SMS to any mobile number.</p>
-      </div>
-      
+    <div className="max-w-2xl">
+      <CardHeader title="Single SMS" subtitle="Send an instant SMS to any mobile number." />
+
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-1">Phone number</label>
-          <div className="relative rounded-xl shadow-sm">
+        <Field label="Phone number">
+          <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <span className="text-gray-400 text-xs font-bold tracking-wider font-mono">+977</span>
+              <span className="text-slate-400 text-xs font-bold tracking-wider font-mono">+977</span>
             </div>
             <input
-              type="text" 
-              placeholder="98XXXXXXXX" 
+              type="text"
+              placeholder="98XXXXXXXX"
               required
               value={singleData.to}
-              className="w-full pl-16 pr-4 py-3 bg-white border border-gray-300 text-gray-900 rounded-xl text-xs font-medium font-mono focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all placeholder:text-gray-400"
+              className={`${inputCls} pl-16 font-mono`}
               onChange={(e) => setSingleData({ ...singleData, to: e.target.value })}
             />
           </div>
-        </div>
+        </Field>
 
         <div>
-          <div className="flex justify-between items-center mb-2 ml-1">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Message</label>
-            
-            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
-              creditCost > 1 
-                ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                : 'bg-gray-100 text-gray-500 border-gray-200'
-            }`}>
-              <span className="font-medium">{charCount} chars{seg.encoding === "Unicode" ? " • Unicode" : ""}</span>
-              <span className="text-gray-300 mx-1.5">•</span>
-              <span>Cost: <strong className="font-extrabold font-mono text-xs">{creditCost}</strong> {creditCost === 1 ? 'credit' : 'credits'}</span>
-            </span>
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Message</span>
+            <CostBadge chars={charCount} encoding={seg.encoding} cost={creditCost} />
           </div>
-          
           <textarea
-            placeholder="Type your message..." 
-            required 
+            placeholder="Type your message..."
+            required
             rows="5"
             value={singleData.message}
-            className="w-full p-4 bg-white border border-gray-300 text-gray-900 rounded-xl focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-xs leading-relaxed transition-all placeholder:text-gray-400 resize-none"
+            className={`${inputCls} leading-relaxed resize-none`}
             onChange={(e) => setSingleData({ ...singleData, message: e.target.value })}
           />
+          <p className="text-[11px] text-slate-400 mt-1.5">
+            {seg.encoding} encoding · {seg.segments} segment{seg.segments === 1 ? "" : "s"} · {seg.units} units
+          </p>
         </div>
 
-        <button 
-          type="submit" 
-          disabled={loading} 
-          className="w-full mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white py-3.5 px-4 rounded-xl font-semibold text-xs tracking-wide shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-[0.99] transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center space-x-2"
-        >
-          <span className="text-sm">{loading ? "⚡" : "🚀"}</span>
-          <span>{loading ? "Sending..." : `Send SMS (${creditCost} credits)`}</span>
-        </button>
+        <PrimaryButton loading={loading}>
+          <IconSend className="w-4 h-4" />
+          {loading ? "Sending..." : `Send SMS (${creditCost} credit${creditCost === 1 ? "" : "s"})`}
+        </PrimaryButton>
       </form>
     </div>
   );
