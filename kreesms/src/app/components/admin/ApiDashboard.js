@@ -34,7 +34,7 @@ export default function ApiDashboard() {
   const [loading, setLoading] = useState(false);
 
   const [showIssue, setShowIssue] = useState(false);
-  const [issueForm, setIssueForm] = useState({ name: "", product: "school", credits: "100", rateLimitPerMin: "60" });
+  const [issueForm, setIssueForm] = useState({ name: "", product: "school", credits: "0", rateLimitPerMin: "60" });
   const [issuing, setIssuing] = useState(false);
   const [issuedSecret, setIssuedSecret] = useState(null);
 
@@ -96,7 +96,7 @@ export default function ApiDashboard() {
       });
       if (data.success) {
         setIssuedSecret({ apiKey: data.apiKey, secret: data.secret, prefix: data.client.key_prefix, panelEmail: data.panelEmail, panelPassword: data.panelPassword });
-        setIssueForm({ name: "", product: "school", credits: "100", rateLimitPerMin: "60" });
+        setIssueForm({ name: "", product: "school", credits: "0", rateLimitPerMin: "60" });
         loadStats();
       } else {
         setMsg(data.message || "Could not issue key.");
