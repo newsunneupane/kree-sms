@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { api } from "../../../lib/client-api";
-import { StatCard, StatusChip, DataTable, EmptyState, Notice, CopyButton, selectCls } from "../ui/ui";
+import { StatCard, StatusChip, DataTable, EmptyState, Notice, detectNoticeTone, CopyButton, selectCls } from "../ui/ui";
 import { IconLogout, IconKey, IconDoc } from "../ui/Icons";
 
 const STATUS_OPTIONS = [
@@ -118,7 +118,7 @@ export default function ApiClientDashboard({ user, logout }) {
           </button>
         </header>
 
-        {msg && <Notice tone="info" onDismiss={() => setMsg("")}>{msg}</Notice>}
+        {msg && <Notice tone={detectNoticeTone(msg)} onDismiss={() => setMsg("")}>{msg}</Notice>}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard

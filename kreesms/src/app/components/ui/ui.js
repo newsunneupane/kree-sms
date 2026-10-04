@@ -116,23 +116,72 @@ export function CostBadge({ chars, encoding, cost, perRecipient = false }) {
   );
 }
 
-export function Notice({ tone = "info", children, onDismiss }) {
-  const cls =
+export function Notice({ tone = "info", title, children, onDismiss }) {
+  const config =
     tone === "success"
-      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+      ? {
+          cls: "bg-emerald-50 border-emerald-300 border-l-emerald-500 text-emerald-900",
+          iconBg: "bg-emerald-500",
+          icon: <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />,
+          defaultTitle: "Success",
+          role: "status",
+        }
       : tone === "error"
-        ? "bg-rose-50 border-rose-200 text-rose-700"
-        : "bg-amber-50 border-amber-200 text-amber-900";
+        ? {
+            cls: "bg-rose-50 border-rose-300 border-l-rose-600 text-rose-900",
+            iconBg: "bg-rose-600",
+            icon: <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />,
+            defaultTitle: "Error",
+            role: "alert",
+          }
+        : tone === "validation"
+          ? {
+              cls: "bg-rose-50 border-rose-300 border-l-rose-600 text-rose-900",
+              iconBg: "bg-rose-600",
+              icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />,
+              defaultTitle: "Validation failed",
+              role: "alert",
+            }
+          : {
+              cls: "bg-blue-50 border-blue-300 border-l-blue-500 text-blue-900",
+              iconBg: "bg-blue-500",
+              icon: <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />,
+              defaultTitle: "Notice",
+              role: "status",
+            };
+  const heading = title || config.defaultTitle;
   return (
-    <div className={`p-4 border rounded-xl text-[13px] font-medium flex items-start justify-between gap-3 animate-fade-in ${cls}`}>
-      <div className="leading-relaxed">{children}</div>
+    <div
+      role={config.role}
+      className={`p-4 border border-l-4 rounded-xl shadow-md flex items-start gap-3 animate-fade-in ${config.cls}`}
+    >
+      <span className={`w-7 h-7 rounded-full ${config.iconBg} text-white flex items-center justify-center shrink-0 mt-0.5`}>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          {config.icon}
+        </svg>
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-bold tracking-wide">{heading}</p>
+        <div className="text-[13px] font-medium leading-relaxed mt-0.5 opacity-90">{children}</div>
+      </div>
       {onDismiss ? (
-        <button type="button" onClick={onDismiss} className="opacity-60 hover:opacity-100 transition-opacity p-0.5" aria-label="Dismiss">
-          <IconX className="w-3.5 h-3.5" />
+        <button type="button" onClick={onDismiss} className="opacity-60 hover:opacity-100 transition-opacity p-1 shrink-0" aria-label="Dismiss notification">
+          <IconX className="w-4 h-4" />
         </button>
       ) : null}
     </div>
   );
+}
+
+// Infer a Notice tone from a plain message string — render-layer only,
+// so existing setStatus(msg)/setMsg(msg) call sites stay untouched.
+export function detectNoticeTone(text) {
+  const t = String(text || "").toLowerCase();
+  if (!t) return "info";
+  if (/valid|please (choose|upload|select|enter|write|add)|required|missing|no valid|select at least/.test(t)) return "validation";
+  if (/fail|error|could not|invalid|expired|denied|wrong|unable|limit|out of credits|rejected/.test(t)) return "error";
+  if (/success|succeed|sent|approved|saved|created|copied|downloaded|schedul|receiv|added|imported|top.?up|verif|issu/.test(t)) return "success";
+  return "info";
 }
 
 export function EmptyState({ title, subtitle, action }) {

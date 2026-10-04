@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../../lib/client-api";
 import ApiDashboard from "./admin/ApiDashboard";
-import { StatCard, StatusChip, DataTable, EmptyState, Notice, inputCls } from "./ui/ui";
+import { StatCard, StatusChip, DataTable, EmptyState, Notice, detectNoticeTone, inputCls } from "./ui/ui";
 import { IconLogout, IconRefresh, IconKey, IconChat, IconCard } from "./ui/Icons";
 
 export default function AdminDashboard({ admin, logout }) {
@@ -205,7 +205,7 @@ export default function AdminDashboard({ admin, logout }) {
             </div>
 
             {msg && (
-              <Notice tone="info" onDismiss={() => setMsg("")}>{msg}</Notice>
+              <Notice tone={detectNoticeTone(msg)} onDismiss={() => setMsg("")}>{msg}</Notice>
             )}
 
             <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">

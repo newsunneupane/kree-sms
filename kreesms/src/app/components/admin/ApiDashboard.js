@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { api } from "../../../lib/client-api";
-import { StatCard, StatusChip, DataTable, EmptyState, Notice, CopyButton, inputCls, selectCls } from "../ui/ui";
+import { StatCard, StatusChip, DataTable, EmptyState, Notice, detectNoticeTone, CopyButton, inputCls, selectCls } from "../ui/ui";
 import { IconKey, IconDoc, IconPlus, IconX } from "../ui/Icons";
 
 const STATUS_OPTIONS = [
@@ -161,7 +161,7 @@ export default function ApiDashboard({ onPoolChange }) {
 
   return (
     <div className="space-y-6">
-      {msg && <Notice tone="info" onDismiss={() => setMsg("")}>{msg}</Notice>}
+      {msg && <Notice tone={detectNoticeTone(msg)} onDismiss={() => setMsg("")}>{msg}</Notice>}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard eyebrow="Clients" value={stats ? `${stats.activeClients}/${stats.totalClients}` : "···"} valueClass="text-blue-700" hint="Active / total" />

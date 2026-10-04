@@ -193,13 +193,32 @@ export default function Home() {
 
           {msg.text && (
             <div
-              className={`mt-5 px-4 py-3 rounded-xl text-[13px] font-medium border animate-fade-in ${
+              role={msg.type === "success" ? "status" : "alert"}
+              className={`mt-5 flex items-start gap-3 p-4 border border-l-4 rounded-xl shadow-md animate-fade-in ${
                 msg.type === "success"
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                  : "bg-rose-50 border-rose-200 text-rose-600"
+                  ? "bg-emerald-50 border-emerald-300 border-l-emerald-500 text-emerald-900"
+                  : "bg-rose-50 border-rose-300 border-l-rose-600 text-rose-900"
               }`}
             >
-              {msg.text}
+              <span
+                className={`w-7 h-7 rounded-full text-white flex items-center justify-center shrink-0 mt-0.5 ${
+                  msg.type === "success" ? "bg-emerald-500" : "bg-rose-600"
+                }`}
+              >
+                {msg.type === "success" ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold tracking-wide">{msg.type === "success" ? "Success" : "Error"}</p>
+                <p className="text-[13px] font-medium leading-relaxed mt-0.5 opacity-90">{msg.text}</p>
+              </div>
             </div>
           )}
 

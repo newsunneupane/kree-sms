@@ -9,7 +9,7 @@ import CreditTransfer from "./user/CreditTransfer";
 import SmsHistory from "./user/SmsHistory";
 import ScheduleSms from "./user/ScheduleSms";
 import Phonebook from "./user/Phonebook";
-import { Notice } from "./ui/ui";
+import { Notice, detectNoticeTone } from "./ui/ui";
 import {
   IconChat, IconBulk, IconZap, IconClock, IconBook, IconCard, IconHistory, IconLogout, IconMenu, IconX,
 } from "./ui/Icons";
@@ -190,7 +190,7 @@ export default function UserDashboard({ user, logout }) {
           <div className="max-w-5xl mx-auto">
             {status && (
               <div className="mb-5">
-                <Notice tone="info" onDismiss={() => setStatus("")}>{status}</Notice>
+                <Notice tone={detectNoticeTone(status)} onDismiss={() => setStatus("")}>{status}</Notice>
               </div>
             )}
 
